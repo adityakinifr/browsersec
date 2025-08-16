@@ -45,7 +45,7 @@ async function captureAndSend(apiToken) {
       return;
     }
     try {
-      const analysisPrompt = `Analyze the screenshot to determine the user's intent. Identify the type of application being used, the action the user appears to be taking, and any important contextual attributes. Respond in JSON with keys "appName", "actionName", and "miscNotes".`;
+      const analysisPrompt = `Analyze the screenshot to determine the user's intent. Identify the type of application being used, the action the user appears to be taking, and any important contextual attributes. Categorize the user's action into one of the following: READ (the user is exploring without making changes), BROWSE (the user navigates to a new portion of the site or a new site altogether), SETTINGS-CHANGE (the user changes a setting), or EMAIL-SENSITIVE-SEND (the user sends an API token or other sensitive information). Respond with a valid JSON object containing the keys "appName", "actionName", "miscNotes", and "actionType". Return only the JSON object with no extra text or code fences.`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -55,6 +55,7 @@ async function captureAndSend(apiToken) {
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
+          response_format: { type: 'json_object' },
           messages: [
             {
               role: 'user',
