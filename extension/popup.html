@@ -22,6 +22,13 @@
     </table>
   </section>
   <section>
+    <h2>Risk by Website</h2>
+    <table id="riskTable">
+      <thead><tr><th>Website</th><th>Avg Risk</th><th>Interactions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+  <section>
     <h2>Sensitive Actions</h2>
     <table id="sensitiveTable">
       <thead><tr><th>Action</th><th>Website</th><th>Count</th></tr></thead>
@@ -31,7 +38,18 @@
   <section>
     <h2>Low Prevalence Actions</h2>
     <table id="rareTable">
-      <thead><tr><th>Action Type</th><th>Count</th></tr></thead>
+      <thead><tr><th>Action Type</th><th>Count</th><th>Avg Risk</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Analyze Website</h2>
+    <div>
+      <select id="siteSelect"></select>
+      <button id="analyzeBtn">Analyze</button>
+    </div>
+    <table id="analysisTable">
+      <thead><tr><th>Action</th><th>Reason</th></tr></thead>
       <tbody></tbody>
     </table>
   </section>
