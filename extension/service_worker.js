@@ -87,6 +87,22 @@ async function captureAndSend(apiToken) {
             try {
               const parsed = JSON.parse(content);
               debugLog('log', 'OpenAI intent analysis', parsed);
+
+              const activity = {
+                timestamp: Date.now(),
+                url: tab.url || '',
+                appName: parsed.appName || '',
+                actionName: parsed.actionName || '',
+                miscNotes: parsed.miscNotes || '',
+                actionType: parsed.actionType || ''
+              };
+
+              chrome.storage.local.get({ activities: [] }, ({ activities }) => {
+                activities.push(activity);
+                chrome.storage.local.set({ activities }, () => {
+                  debugLog('debug', 'activity stored', activity);
+                });
+              });
             } catch (parseErr) {
               debugLog('error', 'Failed to parse AI response', parseErr, content);
             }
