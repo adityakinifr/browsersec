@@ -6,7 +6,10 @@ function saveOptions(e) {
     domTracking: document.getElementById('domTracking').checked,
     screenCapture: document.getElementById('screenCapture').checked,
     interactionMonitoring: document.getElementById('interactionMonitoring').checked,
-    retention: parseInt(document.getElementById('retention').value, 10) || 0
+    retention: (() => {
+      const val = parseInt(document.getElementById('retention').value, 10);
+      return Number.isNaN(val) ? 30 : val;
+    })()
   };
   chrome.storage.local.set(options, () => {
     const status = document.getElementById('status');
@@ -20,10 +23,10 @@ function saveOptions(e) {
 function restoreOptions() {
   chrome.storage.local.get({
     apiToken: '',
-    domTracking: false,
-    screenCapture: false,
-    interactionMonitoring: false,
-    retention: 0
+    domTracking: true,
+    screenCapture: true,
+    interactionMonitoring: true,
+    retention: 30
   }, (items) => {
     document.getElementById('apiToken').value = items.apiToken;
     document.getElementById('domTracking').checked = items.domTracking;
