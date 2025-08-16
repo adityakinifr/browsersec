@@ -41,4 +41,22 @@ document.addEventListener('click', () => {
   }
 });
 
+// Notify the background script whenever the user types.
+// Each key press resets a short timer in the service worker, ensuring
+// that a screenshot is captured only after typing has paused.
+document.addEventListener('keydown', () => {
+  try {
+    debugLog('debug', 'sending user-typing message');
+    chrome.runtime.sendMessage({ type: 'user-typing' }, () => {
+      if (chrome.runtime.lastError) {
+        debugLog('debug', 'message failed', chrome.runtime.lastError);
+      } else {
+        debugLog('debug', 'user-typing message sent');
+      }
+    });
+  } catch (err) {
+    debugLog('debug', 'unable to send message', err);
+  }
+});
+
 // TODO: Monitor DOM changes and additional user interactions.

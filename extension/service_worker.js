@@ -35,8 +35,6 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-let captureTimer;
-
 async function captureAndSend(apiToken) {
   debugLog('debug', 'capturing screenshot');
   chrome.tabs.captureVisibleTab({ format: 'png' }, async (dataUrl) => {
@@ -81,23 +79,7 @@ async function captureAndSend(apiToken) {
   });
 }
 
-function startScreenshotLoop() {
-  if (captureTimer) clearInterval(captureTimer);
-  chrome.storage.local.get({ apiToken: '', screenCapture: true, screenshotInterval: 5 }, (items) => {
-    if (!items.screenCapture || !items.apiToken) return;
-    debugLog('debug', `starting screenshot loop every ${items.screenshotInterval}s`);
-    captureTimer = setInterval(() => captureAndSend(items.apiToken), items.screenshotInterval * 1000);
-  });
-}
-
-startScreenshotLoop();
-
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && (changes.screenshotInterval || changes.apiToken || changes.screenCapture)) {
-    debugLog('debug', 'screenshot loop settings changed');
-    startScreenshotLoop();
-  }
-});
+let typingTimer;
 
 function triggerOnSetting(reason) {
   chrome.storage.local.get({ apiToken: '', screenCapture: true }, (items) => {
@@ -111,19 +93,14 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'user-click') {
     debugLog('debug', 'received user-click message');
     triggerOnSetting('user-click');
+  } else if (msg.type === 'user-typing') {
+    debugLog('debug', 'received user-typing message');
+    if (typingTimer) clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => {
+      triggerOnSetting('user-typing');
+      typingTimer = null;
+    }, 3000);
   }
-});
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  if (changeInfo.status === 'complete') {
-    debugLog('debug', 'tab updated');
-    triggerOnSetting('tab-updated');
-  }
-});
-
-chrome.tabs.onActivated.addListener(() => {
-  debugLog('debug', 'tab activated');
-  triggerOnSetting('tab-activated');
 });
 
 // TODO: Implement DOM state tracking, screen capture analysis,
