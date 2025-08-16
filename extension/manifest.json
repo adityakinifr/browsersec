@@ -3,7 +3,7 @@
   "name": "BrowserSec",
   "description": "Intelligent browser security extension",
   "version": "0.1.0",
-  "permissions": ["storage", "scripting", "activeTab"],
+  "permissions": ["storage", "scripting", "activeTab", "tabs"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "service_worker.js"

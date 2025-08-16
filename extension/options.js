@@ -9,6 +9,10 @@ function saveOptions(e) {
     retention: (() => {
       const val = parseInt(document.getElementById('retention').value, 10);
       return Number.isNaN(val) ? 30 : val;
+    })(),
+    screenshotInterval: (() => {
+      const val = parseInt(document.getElementById('screenshotInterval').value, 10);
+      return Number.isNaN(val) ? 5 : val;
     })()
   };
   chrome.storage.local.set(options, () => {
@@ -26,13 +30,15 @@ function restoreOptions() {
     domTracking: true,
     screenCapture: true,
     interactionMonitoring: true,
-    retention: 30
+    retention: 30,
+    screenshotInterval: 5
   }, (items) => {
     document.getElementById('apiToken').value = items.apiToken;
     document.getElementById('domTracking').checked = items.domTracking;
     document.getElementById('screenCapture').checked = items.screenCapture;
     document.getElementById('interactionMonitoring').checked = items.interactionMonitoring;
     document.getElementById('retention').value = items.retention;
+    document.getElementById('screenshotInterval').value = items.screenshotInterval;
   });
 }
 
