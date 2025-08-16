@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BrowserSec Settings</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    label { display: block; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>BrowserSec Settings</h1>
+  <form id="settings-form">
+    <label>
+      OpenAI API Token
+      <input type="password" id="apiToken" />
+    </label>
+    <fieldset>
+      <legend>Monitoring Preferences</legend>
+      <label><input type="checkbox" id="domTracking" /> DOM state tracking</label>
+      <label><input type="checkbox" id="screenCapture" /> Screen capture analysis</label>
+      <label><input type="checkbox" id="interactionMonitoring" /> User interaction monitoring</label>
+    </fieldset>
+    <label>
+      Data retention (days)
+      <input type="number" id="retention" min="0" />
+    </label>
+    <button type="submit">Save</button>
+    <span id="status"></span>
+  </form>
+  <script src="options.js"></script>
+</body>
+</html>
