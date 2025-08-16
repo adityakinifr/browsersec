@@ -1,0 +1,11 @@
+{
+  "name": "browsersec",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^23.0.0"
+  }
+}
