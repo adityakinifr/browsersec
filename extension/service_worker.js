@@ -59,7 +59,7 @@ async function captureAndSend(apiToken) {
           }
           const domContent = results?.[0]?.result || '';
           try {
-            const analysisPrompt = `Analyze the screenshot and provided DOM to determine the user's intent. Identify the type of application being used, the action the user appears to be taking, and any important contextual attributes. Categorize the user's action into one of the following: READ (the user is exploring without making changes), BROWSE (the user navigates to a new portion of the site or a new site altogether), SETTINGS-CHANGE (the user changes a setting), or EMAIL-SENSITIVE-SEND (the user sends an API token or other sensitive information). Respond with a valid JSON object containing the keys "appName", "actionName", "miscNotes", and "actionType". Return only the JSON object with no extra text or code fences.`;
+            const analysisPrompt = `Analyze the screenshot and provided DOM to determine the user's intent. Identify the type of application being used, the action the user appears to be taking, and any important contextual attributes. Categorize the user's action into one of the following: READ (the user is exploring without making changes), BROWSE (the user navigates to a new portion of the site or a new site altogether), SETTINGS-CHANGE (the user changes a setting), or EMAIL-SENSITIVE-SEND (the user sends an API token or other sensitive information). Additionally assign a riskScore from 1 (no risk) to 5 (high risk) based on the potential security impact of the action—higher scores correspond to potentially risky behavior such as granting access through a settings change or sending sensitive data. Respond with a valid JSON object containing the keys "appName", "actionName", "miscNotes", "actionType", and "riskScore". Return only the JSON object with no extra text or code fences.`;
 
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
@@ -94,7 +94,8 @@ async function captureAndSend(apiToken) {
                 appName: parsed.appName || '',
                 actionName: parsed.actionName || '',
                 miscNotes: parsed.miscNotes || '',
-                actionType: parsed.actionType || ''
+                actionType: parsed.actionType || '',
+                riskScore: typeof parsed.riskScore === 'number' ? parsed.riskScore : 1
               };
 
               chrome.storage.local.get({ activities: [] }, ({ activities }) => {
