@@ -8,6 +8,7 @@ const dom = new JSDOM(`<!DOCTYPE html><form id="settings-form">
   <input id="domTracking" type="checkbox">
   <input id="screenCapture" type="checkbox">
   <input id="interactionMonitoring" type="checkbox">
+  <input id="debug" type="checkbox">
   <input id="retention">
   <input id="screenshotInterval">
   <div id="status"></div>
@@ -33,6 +34,7 @@ test('saveOptions stores settings to chrome.storage', () => {
   document.getElementById('domTracking').checked = true;
   document.getElementById('screenCapture').checked = false;
   document.getElementById('interactionMonitoring').checked = true;
+  document.getElementById('debug').checked = true;
   document.getElementById('retention').value = '45';
   document.getElementById('screenshotInterval').value = '15';
 
@@ -43,6 +45,7 @@ test('saveOptions stores settings to chrome.storage', () => {
     domTracking: true,
     screenCapture: false,
     interactionMonitoring: true,
+    debug: true,
     retention: 45,
     screenshotInterval: 15
   });
@@ -54,6 +57,7 @@ test('restoreOptions populates form from chrome.storage', () => {
     domTracking: false,
     screenCapture: true,
     interactionMonitoring: false,
+    debug: true,
     retention: 10,
     screenshotInterval: 20
   };
@@ -64,6 +68,7 @@ test('restoreOptions populates form from chrome.storage', () => {
   assert.equal(document.getElementById('domTracking').checked, false);
   assert.equal(document.getElementById('screenCapture').checked, true);
   assert.equal(document.getElementById('interactionMonitoring').checked, false);
+  assert.equal(document.getElementById('debug').checked, true);
   assert.equal(document.getElementById('retention').value, '10');
   assert.equal(document.getElementById('screenshotInterval').value, '20');
 });
@@ -75,6 +80,7 @@ test('restoreOptions uses defaults when storage is empty', () => {
   assert.equal(document.getElementById('domTracking').checked, true);
   assert.equal(document.getElementById('screenCapture').checked, true);
   assert.equal(document.getElementById('interactionMonitoring').checked, true);
+  assert.equal(document.getElementById('debug').checked, false);
   assert.equal(document.getElementById('retention').value, '30');
   assert.equal(document.getElementById('screenshotInterval').value, '5');
 });
