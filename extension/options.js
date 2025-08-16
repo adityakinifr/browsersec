@@ -6,6 +6,7 @@ function saveOptions(e) {
     domTracking: document.getElementById('domTracking').checked,
     screenCapture: document.getElementById('screenCapture').checked,
     interactionMonitoring: document.getElementById('interactionMonitoring').checked,
+    debug: document.getElementById('debug').checked,
     retention: (() => {
       const val = parseInt(document.getElementById('retention').value, 10);
       return Number.isNaN(val) ? 30 : val;
@@ -30,6 +31,7 @@ function restoreOptions() {
     domTracking: true,
     screenCapture: true,
     interactionMonitoring: true,
+    debug: false,
     retention: 30,
     screenshotInterval: 5
   }, (items) => {
@@ -37,6 +39,7 @@ function restoreOptions() {
     document.getElementById('domTracking').checked = items.domTracking;
     document.getElementById('screenCapture').checked = items.screenCapture;
     document.getElementById('interactionMonitoring').checked = items.interactionMonitoring;
+    document.getElementById('debug').checked = items.debug;
     document.getElementById('retention').value = items.retention;
     document.getElementById('screenshotInterval').value = items.screenshotInterval;
   });

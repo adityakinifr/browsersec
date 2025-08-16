@@ -1,7 +1,23 @@
 // Content script placeholder for BrowserSec
 // Interacts with the DOM and forwards relevant data to the background worker.
 
-console.log('BrowserSec content script loaded');
+let debug = false;
+function debugLog(level, ...args) {
+  if (!debug) return;
+  console[level]('Browsersec:', ...args);
+}
+
+chrome.storage.local.get({ debug: false }, items => {
+  debug = items.debug;
+  debugLog('log', 'content script loaded');
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.debug) {
+    debug = changes.debug.newValue;
+    debugLog('log', `debug mode ${debug ? 'enabled' : 'disabled'}`);
+  }
+});
 
 // Send a message to the background script whenever the user clicks on the page
 // Guard against "Extension context invalidated" errors by gracefully handling
@@ -9,16 +25,19 @@ console.log('BrowserSec content script loaded');
 // script remains attached to the page).
 document.addEventListener('click', () => {
   try {
+    debugLog('debug', 'sending user-click message');
     chrome.runtime.sendMessage({ type: 'user-click' }, () => {
       // Accessing lastError prevents unchecked runtime errors that manifest
       // as "Extension context invalidated" in some environments.
       if (chrome.runtime.lastError) {
-        console.debug('BrowserSec: message failed', chrome.runtime.lastError);
+        debugLog('debug', 'message failed', chrome.runtime.lastError);
+      } else {
+        debugLog('debug', 'user-click message sent');
       }
     });
   } catch (err) {
     // In rare cases chrome.runtime may itself be unavailable; ignore silently.
-    console.debug('BrowserSec: unable to send message', err);
+    debugLog('debug', 'unable to send message', err);
   }
 });
 

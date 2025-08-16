@@ -1,6 +1,24 @@
 // Background service worker for BrowserSec
 // Placeholder for continuous monitoring and intent classification
 
+let debug = false;
+function debugLog(level, ...args) {
+  if (!debug) return;
+  console[level]('Browsersec:', ...args);
+}
+
+chrome.storage.local.get({ debug: false }, items => {
+  debug = items.debug;
+  debugLog('log', 'service worker initialized');
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.debug) {
+    debug = changes.debug.newValue;
+    debugLog('log', `debug mode ${debug ? 'enabled' : 'disabled'}`);
+  }
+});
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get({
     domTracking: true,
@@ -8,10 +26,11 @@ chrome.runtime.onInstalled.addListener(() => {
     interactionMonitoring: true,
     retention: 30,
     screenshotInterval: 5,
-    apiToken: ''
+    apiToken: '',
+    debug: false
   }, (items) => {
     chrome.storage.local.set(items, () => {
-      console.log('BrowserSec installed with default settings');
+      debugLog('log', 'installed with default settings');
     });
   });
 });
@@ -19,8 +38,12 @@ chrome.runtime.onInstalled.addListener(() => {
 let captureTimer;
 
 async function captureAndSend(apiToken) {
+  debugLog('debug', 'capturing screenshot');
   chrome.tabs.captureVisibleTab({ format: 'png' }, async (dataUrl) => {
-    if (!dataUrl) return;
+    if (!dataUrl) {
+      debugLog('debug', 'captureVisibleTab returned empty data');
+      return;
+    }
     try {
       const analysisPrompt = `Analyze the screenshot to determine the user's intent. Identify the type of application being used, the action the user appears to be taking, and any important contextual attributes. Respond in JSON with keys "appName", "actionName", and "miscNotes".`;
 
@@ -47,12 +70,12 @@ async function captureAndSend(apiToken) {
       const content = data?.choices?.[0]?.message?.content;
       try {
         const parsed = JSON.parse(content);
-        console.log('OpenAI intent analysis', parsed);
+        debugLog('log', 'OpenAI intent analysis', parsed);
       } catch (parseErr) {
-        console.error('Failed to parse AI response', parseErr, content);
+        debugLog('error', 'Failed to parse AI response', parseErr, content);
       }
     } catch (err) {
-      console.error('Failed to send screenshot to OpenAI', err);
+      debugLog('error', 'Failed to send screenshot to OpenAI', err);
     }
   });
 }
@@ -61,6 +84,7 @@ function startScreenshotLoop() {
   if (captureTimer) clearInterval(captureTimer);
   chrome.storage.local.get({ apiToken: '', screenCapture: true, screenshotInterval: 5 }, (items) => {
     if (!items.screenCapture || !items.apiToken) return;
+    debugLog('debug', `starting screenshot loop every ${items.screenshotInterval}s`);
     captureTimer = setInterval(() => captureAndSend(items.apiToken), items.screenshotInterval * 1000);
   });
 }
@@ -69,31 +93,36 @@ startScreenshotLoop();
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && (changes.screenshotInterval || changes.apiToken || changes.screenCapture)) {
+    debugLog('debug', 'screenshot loop settings changed');
     startScreenshotLoop();
   }
 });
 
-function triggerOnSetting() {
+function triggerOnSetting(reason) {
   chrome.storage.local.get({ apiToken: '', screenCapture: true }, (items) => {
     if (!items.screenCapture || !items.apiToken) return;
+    debugLog('debug', 'triggering capture', reason);
     captureAndSend(items.apiToken);
   });
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'user-click') {
-    triggerOnSetting();
+    debugLog('debug', 'received user-click message');
+    triggerOnSetting('user-click');
   }
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === 'complete') {
-    triggerOnSetting();
+    debugLog('debug', 'tab updated');
+    triggerOnSetting('tab-updated');
   }
 });
 
 chrome.tabs.onActivated.addListener(() => {
-  triggerOnSetting();
+  debugLog('debug', 'tab activated');
+  triggerOnSetting('tab-activated');
 });
 
 // TODO: Implement DOM state tracking, screen capture analysis,

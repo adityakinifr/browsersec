@@ -24,6 +24,7 @@ BrowserSec is a Chrome browser extension designed to enhance user security throu
   - OpenAI API token configuration
   - Monitoring preferences (enabled by default)
   - Data retention settings (default 30 days)
+  - Optional debug logging with Browsersec-prefixed output
 
 - **Data Visualization**
   - Interactive dashboard
