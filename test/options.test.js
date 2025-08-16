@@ -62,3 +62,13 @@ test('restoreOptions populates form from chrome.storage', () => {
   assert.equal(document.getElementById('interactionMonitoring').checked, false);
   assert.equal(document.getElementById('retention').value, '10');
 });
+
+test('restoreOptions uses defaults when storage is empty', () => {
+  stored = {};
+  restoreOptions();
+
+  assert.equal(document.getElementById('domTracking').checked, true);
+  assert.equal(document.getElementById('screenCapture').checked, true);
+  assert.equal(document.getElementById('interactionMonitoring').checked, true);
+  assert.equal(document.getElementById('retention').value, '30');
+});

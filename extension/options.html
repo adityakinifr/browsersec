@@ -17,13 +17,13 @@
     </label>
     <fieldset>
       <legend>Monitoring Preferences</legend>
-      <label><input type="checkbox" id="domTracking" /> DOM state tracking</label>
-      <label><input type="checkbox" id="screenCapture" /> Screen capture analysis</label>
-      <label><input type="checkbox" id="interactionMonitoring" /> User interaction monitoring</label>
+      <label><input type="checkbox" id="domTracking" checked /> DOM state tracking</label>
+      <label><input type="checkbox" id="screenCapture" checked /> Screen capture analysis</label>
+      <label><input type="checkbox" id="interactionMonitoring" checked /> User interaction monitoring</label>
     </fieldset>
     <label>
       Data retention (days)
-      <input type="number" id="retention" min="0" />
+      <input type="number" id="retention" min="0" value="30" />
     </label>
     <button type="submit">Save</button>
     <span id="status"></span>
