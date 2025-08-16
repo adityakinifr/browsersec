@@ -103,5 +103,26 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
+// Capture a screenshot whenever the active tab navigates to a new page
+chrome.webNavigation.onCompleted.addListener((details) => {
+  if (details.frameId !== 0) return;
+  chrome.tabs.get(details.tabId, (tab) => {
+    if (chrome.runtime.lastError || !tab.active) return;
+    debugLog('debug', 'navigation completed');
+    triggerOnSetting('navigation');
+  });
+});
+
+// Detect SPA-style navigation via the History API
+chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+  if (details.frameId !== 0) return;
+  chrome.tabs.get(details.tabId, (tab) => {
+    if (chrome.runtime.lastError || !tab.active) return;
+    debugLog('debug', 'history state updated');
+    triggerOnSetting('history-state-updated');
+  });
+});
+
 // TODO: Implement DOM state tracking, screen capture analysis,
 // user interaction monitoring, and AI-powered intent classification.
+
