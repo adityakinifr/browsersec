@@ -22,6 +22,8 @@ async function captureAndSend(apiToken) {
   chrome.tabs.captureVisibleTab({ format: 'png' }, async (dataUrl) => {
     if (!dataUrl) return;
     try {
+      const analysisPrompt = `Analyze the screenshot to determine the user's intent. Identify the type of application being used, the action the user appears to be taking, and any important contextual attributes. Respond in JSON with keys "appName", "actionName", and "miscNotes".`;
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -34,7 +36,7 @@ async function captureAndSend(apiToken) {
             {
               role: 'user',
               content: [
-                { type: 'text', text: 'Analyze this screenshot' },
+                { type: 'text', text: analysisPrompt },
                 { type: 'image_url', image_url: { url: dataUrl } }
               ]
             }
@@ -42,7 +44,13 @@ async function captureAndSend(apiToken) {
         })
       });
       const data = await response.json();
-      console.log('OpenAI response', data);
+      const content = data?.choices?.[0]?.message?.content;
+      try {
+        const parsed = JSON.parse(content);
+        console.log('OpenAI intent analysis', parsed);
+      } catch (parseErr) {
+        console.error('Failed to parse AI response', parseErr, content);
+      }
     } catch (err) {
       console.error('Failed to send screenshot to OpenAI', err);
     }
