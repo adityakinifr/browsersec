@@ -3,4 +3,9 @@
 
 console.log('BrowserSec content script loaded');
 
-// TODO: Monitor DOM changes and user interactions.
+// Send a message to the background script whenever the user clicks on the page
+document.addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'user-click' });
+});
+
+// TODO: Monitor DOM changes and additional user interactions.
