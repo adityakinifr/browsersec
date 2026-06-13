@@ -1,0 +1,265 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1B0000000000000000000002 /* LiveKaraokeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000002 /* LiveKaraokeApp.swift */; };
+		1B0000000000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000003 /* ContentView.swift */; };
+		1B0000000000000000000004 /* SystemAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000004 /* SystemAudioCapture.swift */; };
+		1B0000000000000000000005 /* AudioMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000005 /* AudioMonitor.swift */; };
+		1B0000000000000000000006 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000006 /* RingBuffer.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A0000000000000000000001 /* LiveKaraoke.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveKaraoke.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000000000000000000002 /* LiveKaraokeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveKaraokeApp.swift; sourceTree = "<group>"; };
+		1A0000000000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000004 /* SystemAudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioCapture.swift; sourceTree = "<group>"; };
+		1A0000000000000000000005 /* AudioMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMonitor.swift; sourceTree = "<group>"; };
+		1A0000000000000000000006 /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
+		1A0000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A0000000000000000000008 /* LiveKaraoke.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveKaraoke.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1D0000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1C0000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				1C0000000000000000000002 /* LiveKaraoke */,
+				1C0000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1C0000000000000000000002 /* LiveKaraoke */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000002 /* LiveKaraokeApp.swift */,
+				1A0000000000000000000003 /* ContentView.swift */,
+				1A0000000000000000000004 /* SystemAudioCapture.swift */,
+				1A0000000000000000000005 /* AudioMonitor.swift */,
+				1A0000000000000000000006 /* RingBuffer.swift */,
+				1A0000000000000000000007 /* Info.plist */,
+				1A0000000000000000000008 /* LiveKaraoke.entitlements */,
+			);
+			path = LiveKaraoke;
+			sourceTree = "<group>";
+		};
+		1C0000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000001 /* LiveKaraoke.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1E0000000000000000000001 /* LiveKaraoke */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 200000000000000000000002 /* Build configuration list for PBXNativeTarget "LiveKaraoke" */;
+			buildPhases = (
+				1D0000000000000000000001 /* Sources */,
+				1D0000000000000000000002 /* Frameworks */,
+				1D0000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LiveKaraoke;
+			productName = LiveKaraoke;
+			productReference = 1A0000000000000000000001 /* LiveKaraoke.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1F0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					1E0000000000000000000001 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+				};
+			};
+			buildConfigurationList = 200000000000000000000001 /* Build configuration list for PBXProject "LiveKaraoke" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1C0000000000000000000001;
+			productRefGroup = 1C0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1E0000000000000000000001 /* LiveKaraoke */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1D0000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1D0000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B0000000000000000000002 /* LiveKaraokeApp.swift in Sources */,
+				1B0000000000000000000003 /* ContentView.swift in Sources */,
+				1B0000000000000000000004 /* SystemAudioCapture.swift in Sources */,
+				1B0000000000000000000005 /* AudioMonitor.swift in Sources */,
+				1B0000000000000000000006 /* RingBuffer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		210000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		210000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		210000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LiveKaraoke/LiveKaraoke.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiveKaraoke/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.livekaraoke.LiveKaraoke;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		210000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LiveKaraoke/LiveKaraoke.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiveKaraoke/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.livekaraoke.LiveKaraoke;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		200000000000000000000001 /* Build configuration list for PBXProject "LiveKaraoke" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				210000000000000000000001 /* Debug */,
+				210000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		200000000000000000000002 /* Build configuration list for PBXNativeTarget "LiveKaraoke" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				210000000000000000000003 /* Debug */,
+				210000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1F0000000000000000000001 /* Project object */;
+}
