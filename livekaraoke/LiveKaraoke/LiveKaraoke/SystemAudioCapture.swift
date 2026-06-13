@@ -30,6 +30,9 @@ final class SystemAudioCapture: ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var level: Float = 0      // 0...1 RMS, smoothed
     @Published var monitorEnabled = false
+    @Published var removeVocals = true {
+        didSet { monitor?.removeVocals = removeVocals }
+    }
     @Published private(set) var status = "Idle"
 
     private var tapID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
@@ -55,7 +58,7 @@ final class SystemAudioCapture: ObservableObject {
             try setUpIOProc()
             try AudioDeviceStartChecked()
             if monitorEnabled {
-                let m = AudioMonitor(ring: ring, sampleRate: sampleRate)
+                let m = AudioMonitor(ring: ring, sampleRate: sampleRate, removeVocals: removeVocals)
                 try m.start()
                 monitor = m
             }
@@ -161,47 +164,58 @@ final class SystemAudioCapture: ObservableObject {
         ioProcID = procID
     }
 
-    /// Runs on the capture queue (audio thread). Keep it allocation-free.
+    /// Runs on the capture queue (audio thread). Keep it allocation-light.
+    /// Writes *interleaved stereo* [L,R,L,R,...] into the ring so downstream
+    /// stages (M1 vocal removal) have both channels; computes a mono RMS meter.
     private nonisolated func handle(inputData: UnsafePointer<AudioBufferList>) {
         let abl = UnsafeMutableAudioBufferListPointer(
             UnsafeMutablePointer(mutating: inputData))
-        guard let firstBuffer = abl.first,
-              let raw = firstBuffer.mData?.assumingMemoryBound(to: Float.self) else {
+        guard let first = abl.first,
+              let p0 = first.mData?.assumingMemoryBound(to: Float.self) else {
             return
         }
 
-        let channels = Int(firstBuffer.mNumberChannels == 0 ? 1 : firstBuffer.mNumberChannels)
-        let totalFloats = Int(firstBuffer.mDataByteSize) / MemoryLayout<Float>.size
-        let frames = channels > 0 ? totalFloats / channels : totalFloats
+        // Two common tap layouts:
+        //  (a) non-interleaved: abl.count == 2, one buffer per channel
+        //  (b) interleaved:     one buffer, mNumberChannels == 2
+        let nonInterleaved = abl.count >= 2
+        let frames: Int
+        var leftAt: (Int) -> Float
+        var rightAt: (Int) -> Float
+
+        if nonInterleaved {
+            let p1 = abl[1].mData?.assumingMemoryBound(to: Float.self) ?? p0
+            frames = Int(first.mDataByteSize) / MemoryLayout<Float>.size
+            leftAt = { p0[$0] }
+            rightAt = { p1[$0] }
+        } else {
+            let ch = Int(first.mNumberChannels == 0 ? 1 : first.mNumberChannels)
+            frames = (Int(first.mDataByteSize) / MemoryLayout<Float>.size) / max(ch, 1)
+            if ch >= 2 {
+                leftAt = { p0[$0 * ch] }
+                rightAt = { p0[$0 * ch + 1] }
+            } else {
+                leftAt = { p0[$0] }      // mono source: duplicate
+                rightAt = { p0[$0] }
+            }
+        }
         guard frames > 0 else { return }
 
-        // Downmix to mono into a small stack scratch, compute RMS, push to ring.
         var sumSquares: Float = 0
-        let scratch = UnsafeMutableBufferPointer<Float>.allocate(capacity: frames)
+        let scratch = UnsafeMutableBufferPointer<Float>.allocate(capacity: frames * 2)
         defer { scratch.deallocate() }
 
-        if channels == 1 {
-            for i in 0..<frames {
-                let s = raw[i]
-                scratch[i] = s
-                sumSquares += s * s
-            }
-        } else {
-            // Interleaved [L,R,L,R,...] -> mono average.
-            for f in 0..<frames {
-                var acc: Float = 0
-                for c in 0..<channels { acc += raw[f * channels + c] }
-                let s = acc / Float(channels)
-                scratch[f] = s
-                sumSquares += s * s
-            }
+        for f in 0..<frames {
+            let l = leftAt(f), r = rightAt(f)
+            scratch[f * 2] = l
+            scratch[f * 2 + 1] = r
+            let mono = (l + r) * 0.5
+            sumSquares += mono * mono
         }
 
         let rms = (sumSquares / Float(frames)).squareRoot()
-        // Read-modify-write of a single aligned Float; fine for a meter.
-        self.rawLevel = rms
+        self.rawLevel = rms   // single aligned Float write; fine for a meter
 
-        // Only fill the ring when someone is listening.
         if self.monitorEnabled {
             self.ring.write(UnsafeBufferPointer(scratch))
         }

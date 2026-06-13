@@ -45,6 +45,12 @@ permissions) before we build DSP, autotune, or lyrics.
   prove audio flows, not as the final monitoring path.
 - The level meter scales RMS up (×3) for visibility; not calibrated dBFS.
 
-## Next (M1)
-Replace "straight passthrough" with **center-channel vocal cancellation**
-(mid/side, band-split) so the monitor becomes an instrument-only karaoke track.
+## M1 (implemented): vocal removal
+The monitor path now runs **mid/side band-split cancellation** (`VocalRemover.swift`):
+keeps centered lows (<120 Hz) and highs (>9 kHz), drops the centered vocal band,
+keeps off-center instruments. Toggle **Remove vocals** live to A/B against the
+full mix. Crude vs. neural separation (that's M4) but instant.
+
+## Next (M2)
+Capture the **microphone**, detect pitch (YIN), and **autotune** to a user-set
+key, mixing the corrected voice in with the instrumental.

@@ -31,6 +31,10 @@ struct ContentView: View {
                     .disabled(capture.isRunning) // set before starting
             }
 
+            Toggle("Remove vocals (karaoke)", isOn: $capture.removeVocals)
+                .toggleStyle(.switch)
+                .help("Mid/side band-split cancellation. Toggle live to A/B against the full mix.")
+
             Text(capture.status)
                 .font(.callout)
                 .foregroundStyle(.secondary)

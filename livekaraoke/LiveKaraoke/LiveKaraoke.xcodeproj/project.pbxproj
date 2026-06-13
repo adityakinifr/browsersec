@@ -12,6 +12,7 @@
 		1B0000000000000000000004 /* SystemAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000004 /* SystemAudioCapture.swift */; };
 		1B0000000000000000000005 /* AudioMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000005 /* AudioMonitor.swift */; };
 		1B0000000000000000000006 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000006 /* RingBuffer.swift */; };
+		1B0000000000000000000009 /* VocalRemover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000009 /* VocalRemover.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,7 @@
 		1A0000000000000000000004 /* SystemAudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioCapture.swift; sourceTree = "<group>"; };
 		1A0000000000000000000005 /* AudioMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMonitor.swift; sourceTree = "<group>"; };
 		1A0000000000000000000006 /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
+		1A0000000000000000000009 /* VocalRemover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocalRemover.swift; sourceTree = "<group>"; };
 		1A0000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A0000000000000000000008 /* LiveKaraoke.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveKaraoke.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -52,6 +54,7 @@
 				1A0000000000000000000004 /* SystemAudioCapture.swift */,
 				1A0000000000000000000005 /* AudioMonitor.swift */,
 				1A0000000000000000000006 /* RingBuffer.swift */,
+				1A0000000000000000000009 /* VocalRemover.swift */,
 				1A0000000000000000000007 /* Info.plist */,
 				1A0000000000000000000008 /* LiveKaraoke.entitlements */,
 			);
@@ -139,6 +142,7 @@
 				1B0000000000000000000004 /* SystemAudioCapture.swift in Sources */,
 				1B0000000000000000000005 /* AudioMonitor.swift in Sources */,
 				1B0000000000000000000006 /* RingBuffer.swift in Sources */,
+				1B0000000000000000000009 /* VocalRemover.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

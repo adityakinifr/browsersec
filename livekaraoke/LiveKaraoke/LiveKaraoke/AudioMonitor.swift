@@ -2,11 +2,10 @@
 //  AudioMonitor.swift
 //  LiveKaraoke
 //
-//  Optional passthrough: pulls captured mono samples from the ring buffer and
-//  plays them to the default output device via AVAudioEngine. Used so you can
-//  *hear* the tapped system audio (proof the capture path carries real audio),
-//  not just see a level meter. Beware feedback if you monitor through speakers
-//  while also capturing system audio — use headphones.
+//  Pulls captured *interleaved stereo* samples from the ring buffer, runs the
+//  M1 vocal remover to produce a mono instrumental, and plays it to the default
+//  output via AVAudioEngine. Use headphones — monitoring through speakers while
+//  capturing system audio causes feedback.
 //
 
 import AVFoundation
@@ -16,15 +15,22 @@ final class AudioMonitor {
     private var sourceNode: AVAudioSourceNode?
     private let ring: FloatRingBuffer
     private let sampleRate: Double
+    private let remover: VocalRemover
 
-    init(ring: FloatRingBuffer, sampleRate: Double) {
+    /// Toggle vocal removal live (true = instrumental, false = full mix).
+    var removeVocals: Bool {
+        get { remover.enabled }
+        set { remover.enabled = newValue }
+    }
+
+    init(ring: FloatRingBuffer, sampleRate: Double, removeVocals: Bool) {
         self.ring = ring
         self.sampleRate = sampleRate
+        self.remover = VocalRemover(sampleRate: sampleRate)
+        self.remover.enabled = removeVocals
     }
 
     func start() throws {
-        // Mono float source at the tap's sample rate; the engine will upmix /
-        // sample-rate-convert to the output device as needed.
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate,
                                          channels: 1) else {
             throw NSError(domain: "LiveKaraoke", code: -1,
@@ -32,14 +38,31 @@ final class AudioMonitor {
         }
 
         let ring = self.ring
+        let remover = self.remover
+        // Scratch for one render quantum of interleaved stereo. Sized generously;
+        // AVAudioSourceNode quanta are typically <= 512 frames.
+        let maxFrames = 4096
+        let stereoScratch = UnsafeMutableBufferPointer<Float>.allocate(capacity: maxFrames * 2)
+        stereoScratch.initialize(repeating: 0)
+
         let node = AVAudioSourceNode(format: format) { _, _, frameCount, audioBufferList in
             let abl = UnsafeMutableAudioBufferListPointer(audioBufferList)
             guard let buf = abl.first,
-                  let ptr = buf.mData?.assumingMemoryBound(to: Float.self) else {
+                  let out = buf.mData?.assumingMemoryBound(to: Float.self) else {
                 return noErr
             }
-            let out = UnsafeMutableBufferPointer(start: ptr, count: Int(frameCount))
-            ring.read(into: out)
+            let n = Int(frameCount)
+            let want = min(n, maxFrames)
+            let slice = UnsafeMutableBufferPointer(start: stereoScratch.baseAddress, count: want * 2)
+            ring.read(into: slice)
+
+            for f in 0..<want {
+                let l = stereoScratch[f * 2]
+                let r = stereoScratch[f * 2 + 1]
+                out[f] = remover.process(left: l, right: r)
+            }
+            // Zero any tail beyond what we produced.
+            if want < n { for f in want..<n { out[f] = 0 } }
             return noErr
         }
         self.sourceNode = node
@@ -48,13 +71,18 @@ final class AudioMonitor {
         engine.connect(node, to: engine.mainMixerNode, format: format)
         engine.prepare()
         try engine.start()
+
+        // The scratch lives for the lifetime of the closure; deallocate on stop.
+        self.deallocScratch = { stereoScratch.deallocate() }
     }
+
+    private var deallocScratch: (() -> Void)?
 
     func stop() {
         engine.stop()
-        if let node = sourceNode {
-            engine.detach(node)
-        }
+        if let node = sourceNode { engine.detach(node) }
         sourceNode = nil
+        deallocScratch?()
+        deallocScratch = nil
     }
 }
