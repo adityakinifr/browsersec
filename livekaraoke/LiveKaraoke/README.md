@@ -51,6 +51,16 @@ keeps centered lows (<120 Hz) and highs (>9 kHz), drops the centered vocal band,
 keeps off-center instruments. Toggle **Remove vocals** live to A/B against the
 full mix. Crude vs. neural separation (that's M4) but instant.
 
-## Next (M2)
-Capture the **microphone**, detect pitch (YIN), and **autotune** to a user-set
-key, mixing the corrected voice in with the instrumental.
+## M2 (implemented): autotune the singer
+Mic is captured in the same engine; `PitchDetector.swift` (YIN) estimates the
+singer's f0, `MusicScale.swift` snaps it to the nearest in-key note, and
+`VoiceAutotune.swift` drives an `AVAudioUnitTimePitch` by the required cents.
+UI adds a **Microphone** toggle, **Autotune** toggle, **Key/Scale** pickers, and
+a **Retune** strength slider — all live. (TimePitch adds some latency; a tighter
+PSOLA path is M5.)
+
+Mic needs permission — allow the prompt on first Start with Microphone on.
+**Headphones required** so the mic doesn't re-capture the backing track.
+
+## Next (M3)
+Identify the playing song (ShazamKit) and show **time-synced LRC lyrics**.

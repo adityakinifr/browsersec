@@ -33,6 +33,26 @@ final class SystemAudioCapture: ObservableObject {
     @Published var removeVocals = true {
         didSet { monitor?.removeVocals = removeVocals }
     }
+
+    // M2: microphone autotune
+    @Published var micEnabled = false
+    @Published var autotuneEnabled = true {
+        didSet { monitor?.setAutotuneEnabled(autotuneEnabled) }
+    }
+    @Published var retuneStrength: Float = 1.0 {
+        didSet { monitor?.setRetuneStrength(retuneStrength) }
+    }
+    @Published var scaleRoot: NoteName = .c {
+        didSet { monitor?.updateScale(currentScale) }
+    }
+    @Published var scaleType: ScaleType = .chromatic {
+        didSet { monitor?.updateScale(currentScale) }
+    }
+
+    private var currentScale: MusicScale {
+        MusicScale(root: scaleRoot, type: scaleType)
+    }
+
     @Published private(set) var status = "Idle"
 
     private var tapID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
@@ -52,22 +72,62 @@ final class SystemAudioCapture: ObservableObject {
 
     func start() {
         guard !isRunning else { return }
+        // Mic needs TCC permission; request before building the input graph.
+        if micEnabled {
+            requestMicAccess { [weak self] granted in
+                guard let self else { return }
+                if granted { self.beginCapture() }
+                else { self.status = "Microphone access denied" }
+            }
+        } else {
+            beginCapture()
+        }
+    }
+
+    private func beginCapture() {
         do {
             try setUpTap()
             try setUpAggregateDevice()
             try setUpIOProc()
             try AudioDeviceStartChecked()
-            if monitorEnabled {
-                let m = AudioMonitor(ring: ring, sampleRate: sampleRate, removeVocals: removeVocals)
+            if monitorEnabled || micEnabled {
+                let m = AudioMonitor(ring: ring,
+                                     sampleRate: sampleRate,
+                                     removeVocals: removeVocals,
+                                     instrumentalEnabled: monitorEnabled,
+                                     micEnabled: micEnabled,
+                                     scale: currentScale,
+                                     autotuneEnabled: autotuneEnabled,
+                                     retuneStrength: retuneStrength)
                 try m.start()
                 monitor = m
             }
             startLevelTimer()
             isRunning = true
-            status = "Capturing system audio @ \(Int(sampleRate)) Hz"
+            status = statusLine()
         } catch {
             status = "Start failed: \(error.localizedDescription)"
             tearDown()
+        }
+    }
+
+    private func statusLine() -> String {
+        var parts = ["Capturing @ \(Int(sampleRate)) Hz"]
+        if monitorEnabled { parts.append(removeVocals ? "instrumental" : "full mix") }
+        if micEnabled { parts.append(autotuneEnabled ? "mic+autotune" : "mic") }
+        return parts.joined(separator: " · ")
+    }
+
+    private func requestMicAccess(_ completion: @escaping (Bool) -> Void) {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            completion(true)
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .audio) { granted in
+                DispatchQueue.main.async { completion(granted) }
+            }
+        default:
+            completion(false)
         }
     }
 

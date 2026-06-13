@@ -35,6 +35,39 @@ struct ContentView: View {
                 .toggleStyle(.switch)
                 .help("Mid/side band-split cancellation. Toggle live to A/B against the full mix.")
 
+            Divider()
+
+            // M2 — autotune the singer
+            VStack(spacing: 12) {
+                HStack {
+                    Toggle("Microphone", isOn: $capture.micEnabled)
+                        .toggleStyle(.switch)
+                        .disabled(capture.isRunning) // set before starting
+                    Spacer()
+                    Toggle("Autotune", isOn: $capture.autotuneEnabled)
+                        .toggleStyle(.switch)
+                }
+
+                HStack {
+                    Picker("Key", selection: $capture.scaleRoot) {
+                        ForEach(NoteName.allCases) { Text($0.label).tag($0) }
+                    }
+                    .frame(maxWidth: 120)
+
+                    Picker("Scale", selection: $capture.scaleType) {
+                        ForEach(ScaleType.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                }
+
+                HStack {
+                    Text("Retune")
+                    Slider(value: $capture.retuneStrength, in: 0...1)
+                    Text(String(format: "%.0f%%", capture.retuneStrength * 100))
+                        .monospacedDigit()
+                        .frame(width: 44, alignment: .trailing)
+                }
+            }
+
             Text(capture.status)
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -48,7 +81,7 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(28)
-        .frame(minWidth: 420, minHeight: 320)
+        .frame(minWidth: 440, minHeight: 520)
     }
 }
 

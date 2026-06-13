@@ -2,10 +2,13 @@
 //  AudioMonitor.swift
 //  LiveKaraoke
 //
-//  Pulls captured *interleaved stereo* samples from the ring buffer, runs the
-//  M1 vocal remover to produce a mono instrumental, and plays it to the default
-//  output via AVAudioEngine. Use headphones — monitoring through speakers while
-//  capturing system audio causes feedback.
+//  The output engine. Two sources mixed to the default output:
+//   • Instrumental: captured system audio pulled from the ring buffer, run
+//     through the M1 vocal remover (mono).
+//   • Voice: the live microphone, pitch-corrected by the M2 autotune chain.
+//
+//  Use headphones — monitoring through speakers while capturing system audio
+//  causes feedback, and the mic would re-capture the backing track.
 //
 
 import AVFoundation
@@ -17,20 +20,59 @@ final class AudioMonitor {
     private let sampleRate: Double
     private let remover: VocalRemover
 
-    /// Toggle vocal removal live (true = instrumental, false = full mix).
+    private let voice = VoiceAutotune()
+    private let instrumentalEnabled: Bool
+    private let micEnabled: Bool
+
+    private var deallocScratch: (() -> Void)?
+
     var removeVocals: Bool {
         get { remover.enabled }
         set { remover.enabled = newValue }
     }
 
-    init(ring: FloatRingBuffer, sampleRate: Double, removeVocals: Bool) {
+    init(ring: FloatRingBuffer,
+         sampleRate: Double,
+         removeVocals: Bool,
+         instrumentalEnabled: Bool,
+         micEnabled: Bool,
+         scale: MusicScale,
+         autotuneEnabled: Bool,
+         retuneStrength: Float) {
         self.ring = ring
         self.sampleRate = sampleRate
         self.remover = VocalRemover(sampleRate: sampleRate)
         self.remover.enabled = removeVocals
+        self.instrumentalEnabled = instrumentalEnabled
+        self.micEnabled = micEnabled
+        self.voice.scale = scale
+        self.voice.enabled = autotuneEnabled
+        self.voice.strength = retuneStrength
     }
 
+    // MARK: live updates from the UI
+    func updateScale(_ scale: MusicScale) { voice.scale = scale }
+    func setAutotuneEnabled(_ on: Bool) { voice.enabled = on }
+    func setRetuneStrength(_ s: Float) { voice.strength = s }
+
     func start() throws {
+        if instrumentalEnabled { try attachInstrumental() }
+        if micEnabled { try voice.attach(to: engine) }
+        engine.prepare()
+        try engine.start()
+    }
+
+    func stop() {
+        engine.stop()
+        if micEnabled { voice.detach() }
+        if let node = sourceNode { engine.detach(node) }
+        sourceNode = nil
+        deallocScratch?()
+        deallocScratch = nil
+    }
+
+    // MARK: instrumental source (ring -> vocal remover -> mono out)
+    private func attachInstrumental() throws {
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate,
                                          channels: 1) else {
             throw NSError(domain: "LiveKaraoke", code: -1,
@@ -39,11 +81,10 @@ final class AudioMonitor {
 
         let ring = self.ring
         let remover = self.remover
-        // Scratch for one render quantum of interleaved stereo. Sized generously;
-        // AVAudioSourceNode quanta are typically <= 512 frames.
         let maxFrames = 4096
         let stereoScratch = UnsafeMutableBufferPointer<Float>.allocate(capacity: maxFrames * 2)
         stereoScratch.initialize(repeating: 0)
+        self.deallocScratch = { stereoScratch.deallocate() }
 
         let node = AVAudioSourceNode(format: format) { _, _, frameCount, audioBufferList in
             let abl = UnsafeMutableAudioBufferListPointer(audioBufferList)
@@ -57,32 +98,14 @@ final class AudioMonitor {
             ring.read(into: slice)
 
             for f in 0..<want {
-                let l = stereoScratch[f * 2]
-                let r = stereoScratch[f * 2 + 1]
-                out[f] = remover.process(left: l, right: r)
+                out[f] = remover.process(left: stereoScratch[f * 2],
+                                         right: stereoScratch[f * 2 + 1])
             }
-            // Zero any tail beyond what we produced.
             if want < n { for f in want..<n { out[f] = 0 } }
             return noErr
         }
         self.sourceNode = node
-
         engine.attach(node)
         engine.connect(node, to: engine.mainMixerNode, format: format)
-        engine.prepare()
-        try engine.start()
-
-        // The scratch lives for the lifetime of the closure; deallocate on stop.
-        self.deallocScratch = { stereoScratch.deallocate() }
-    }
-
-    private var deallocScratch: (() -> Void)?
-
-    func stop() {
-        engine.stop()
-        if let node = sourceNode { engine.detach(node) }
-        sourceNode = nil
-        deallocScratch?()
-        deallocScratch = nil
     }
 }
