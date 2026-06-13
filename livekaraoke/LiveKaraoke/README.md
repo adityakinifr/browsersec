@@ -83,6 +83,14 @@ silently denied). This project is set up so grants stick:
 - Avoid "Sign to Run Locally" / ad-hoc signing — its identity changes every build,
   which is the usual cause of repeated prompts.
 
-## Next (M4)
-Swap the center-channel trick for a **streaming neural separator** (Core ML) as a
-higher-quality vocal-removal toggle.
+## M4 (implemented): neural separator option
+A **Separation** picker chooses **Band-split (fast)** or **Neural (Core ML)**.
+`NeuralSeparator.swift` loads a `VocalSeparator` Core ML model if one is bundled
+and runs it on a worker thread, bridged to output via a mono ring (off the render
+thread). Band-split stays inline and RT-safe. The model isn't shipped (large,
+license-bound) — convert one with `tools/convert_separator_coreml.py`; until then
+the Neural segment shows "(add model)" and band-split is used.
+
+## Next (M5)
+Polish: key auto-detect from the backing track, end-to-end latency calibration,
+recording/export, and presets.

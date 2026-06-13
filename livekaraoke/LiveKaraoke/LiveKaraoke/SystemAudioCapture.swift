@@ -33,6 +33,9 @@ final class SystemAudioCapture: ObservableObject {
     @Published var removeVocals = true {
         didSet { monitor?.removeVocals = removeVocals }
     }
+    // M4: separation method (set before Start). Neural requires a bundled model.
+    @Published var separationMethod: SeparationMethod = .bandSplit
+    let neuralModelAvailable: Bool = NeuralSeparator().isAvailable
 
     // M2: microphone autotune
     @Published var micEnabled = false
@@ -101,6 +104,7 @@ final class SystemAudioCapture: ObservableObject {
                 let m = AudioMonitor(ring: ring,
                                      sampleRate: sampleRate,
                                      removeVocals: removeVocals,
+                                     method: separationMethod,
                                      instrumentalEnabled: monitorEnabled,
                                      micEnabled: micEnabled,
                                      scale: currentScale,

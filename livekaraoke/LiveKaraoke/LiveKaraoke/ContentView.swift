@@ -33,7 +33,20 @@ struct ContentView: View {
 
             Toggle("Remove vocals (karaoke)", isOn: $capture.removeVocals)
                 .toggleStyle(.switch)
-                .help("Mid/side band-split cancellation. Toggle live to A/B against the full mix.")
+                .help("Toggle live to A/B against the full mix.")
+
+            Picker("Separation", selection: $capture.separationMethod) {
+                ForEach(SeparationMethod.allCases) { method in
+                    Text(method == .neural && !capture.neuralModelAvailable
+                         ? "Neural (add model)" : method.rawValue)
+                        .tag(method)
+                }
+            }
+            .pickerStyle(.segmented)
+            .disabled(capture.isRunning) // set before starting
+            .help(capture.neuralModelAvailable
+                  ? "Band-split is instant; Neural is higher quality with more latency."
+                  : "Drop VocalSeparator.mlpackage into the target to enable Neural. See tools/.")
 
             Divider()
 
