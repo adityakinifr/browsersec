@@ -36,6 +36,9 @@ final class FloatRingBuffer {
 
     private var mask: Int { capacity - 1 }
 
+    /// Number of samples currently available to read (consumer side estimate).
+    var availableToRead: Int { writeIndex - readIndex }
+
     /// Producer side. Drops samples if the buffer is full (monitor not keeping up).
     func write(_ samples: UnsafeBufferPointer<Float>) {
         let w = writeIndex

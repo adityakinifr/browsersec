@@ -68,6 +68,16 @@ struct ContentView: View {
                 }
             }
 
+            Divider()
+
+            // M3 — synced lyrics
+            Toggle("Show lyrics", isOn: $capture.lyricsEnabled)
+                .toggleStyle(.switch)
+                .disabled(capture.isRunning) // set before starting
+            if capture.lyricsEnabled {
+                LyricsView(controller: capture.lyrics)
+            }
+
             Text(capture.status)
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -81,7 +91,7 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(28)
-        .frame(minWidth: 440, minHeight: 520)
+        .frame(minWidth: 460, minHeight: 760)
     }
 }
 

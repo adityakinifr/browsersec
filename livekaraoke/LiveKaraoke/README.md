@@ -62,5 +62,27 @@ PSOLA path is M5.)
 Mic needs permission — allow the prompt on first Start with Microphone on.
 **Headphones required** so the mic doesn't re-capture the backing track.
 
-## Next (M3)
-Identify the playing song (ShazamKit) and show **time-synced LRC lyrics**.
+## M3 (implemented): synced lyrics
+The captured system audio is streamed into **ShazamKit** (`SongIdentifier.swift`)
+to identify the track; `LyricsProvider.swift` then fetches time-synced **LRC**
+lyrics from lrclib.net, and `LyricsController` + `LyricsView` scroll them in time
+(clock seeded by Shazam's match offset). Toggle **Show lyrics** before Start.
+
+Needs **network access** (lyrics fetch) and the **ShazamKit capability**: in
+Xcode ▸ target ▸ *Signing & Capabilities*, add **ShazamKit**. If a track has no
+synced lyrics on lrclib, the panel says so.
+
+## Permissions that persist across rebuilds
+macOS ties permission grants (Microphone, audio capture) to the app's **bundle
+id + signing identity**. If either changes per build you get re-prompted (or
+silently denied). This project is set up so grants stick:
+- Bundle id is fixed: `com.livekaraoke.LiveKaraoke`.
+- `LiveKaraoke/Signing.xcconfig` centralizes signing — **set your `DEVELOPMENT_TEAM`
+  there once** so every build uses the same Apple Development certificate (a free
+  Apple ID works).
+- Avoid "Sign to Run Locally" / ad-hoc signing — its identity changes every build,
+  which is the usual cause of repeated prompts.
+
+## Next (M4)
+Swap the center-channel trick for a **streaming neural separator** (Core ML) as a
+higher-quality vocal-removal toggle.

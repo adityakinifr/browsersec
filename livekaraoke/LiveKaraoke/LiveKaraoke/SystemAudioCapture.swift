@@ -53,7 +53,14 @@ final class SystemAudioCapture: ObservableObject {
         MusicScale(root: scaleRoot, type: scaleType)
     }
 
+    // M3: lyrics
+    @Published var lyricsEnabled = false
+    let lyrics = LyricsController()
+
     @Published private(set) var status = "Idle"
+
+    private var songIdentifier: SongIdentifier?
+    private var lyricsActive = false   // plain Bool, read on the audio thread
 
     private var tapID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
@@ -102,6 +109,7 @@ final class SystemAudioCapture: ObservableObject {
                 try m.start()
                 monitor = m
             }
+            if lyricsEnabled { setUpSongIdentifier() }
             startLevelTimer()
             isRunning = true
             status = statusLine()
@@ -116,6 +124,21 @@ final class SystemAudioCapture: ObservableObject {
         if monitorEnabled { parts.append(removeVocals ? "instrumental" : "full mix") }
         if micEnabled { parts.append(autotuneEnabled ? "mic+autotune" : "mic") }
         return parts.joined(separator: " · ")
+    }
+
+    private func setUpSongIdentifier() {
+        guard let id = SongIdentifier(sampleRate: sampleRate) else {
+            lyrics.searching(); return
+        }
+        id.onMatch = { [weak self] match in
+            self?.lyrics.handleMatch(title: match.title,
+                                     artist: match.artist,
+                                     matchOffset: match.matchOffset)
+        }
+        id.onStatus = { [weak self] _ in self?.lyrics.searching() }
+        id.start()
+        songIdentifier = id
+        lyricsActive = true
     }
 
     private func requestMicAccess(_ completion: @escaping (Bool) -> Void) {
@@ -264,13 +287,18 @@ final class SystemAudioCapture: ObservableObject {
         var sumSquares: Float = 0
         let scratch = UnsafeMutableBufferPointer<Float>.allocate(capacity: frames * 2)
         defer { scratch.deallocate() }
+        let feedLyrics = lyricsActive
+        let mono = feedLyrics
+            ? UnsafeMutableBufferPointer<Float>.allocate(capacity: frames) : nil
+        defer { mono?.deallocate() }
 
         for f in 0..<frames {
             let l = leftAt(f), r = rightAt(f)
             scratch[f * 2] = l
             scratch[f * 2 + 1] = r
-            let mono = (l + r) * 0.5
-            sumSquares += mono * mono
+            let m = (l + r) * 0.5
+            sumSquares += m * m
+            mono?[f] = m
         }
 
         let rms = (sumSquares / Float(frames)).squareRoot()
@@ -278,6 +306,9 @@ final class SystemAudioCapture: ObservableObject {
 
         if self.monitorEnabled {
             self.ring.write(UnsafeBufferPointer(scratch))
+        }
+        if let mono {
+            songIdentifier?.appendMono(UnsafeBufferPointer(mono))
         }
     }
 
@@ -306,6 +337,9 @@ final class SystemAudioCapture: ObservableObject {
     private func tearDown() {
         levelTimer?.invalidate(); levelTimer = nil
         monitor?.stop(); monitor = nil
+        lyricsActive = false
+        songIdentifier?.stop(); songIdentifier = nil
+        lyrics.reset()
 
         if aggregateID != kAudioObjectUnknown {
             AudioDeviceStop(aggregateID, ioProcID)

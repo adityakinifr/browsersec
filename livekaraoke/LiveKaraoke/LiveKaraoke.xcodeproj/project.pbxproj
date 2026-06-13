@@ -16,6 +16,10 @@
 		1B000000000000000000000A /* PitchDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000A /* PitchDetector.swift */; };
 		1B000000000000000000000B /* MusicScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000B /* MusicScale.swift */; };
 		1B000000000000000000000C /* VoiceAutotune.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000C /* VoiceAutotune.swift */; };
+		1B000000000000000000000D /* SongIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000D /* SongIdentifier.swift */; };
+		1B000000000000000000000E /* LyricsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000E /* LyricsProvider.swift */; };
+		1B000000000000000000000F /* LyricsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000F /* LyricsController.swift */; };
+		1B0000000000000000000010 /* LyricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000010 /* LyricsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +33,11 @@
 		1A000000000000000000000A /* PitchDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchDetector.swift; sourceTree = "<group>"; };
 		1A000000000000000000000B /* MusicScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicScale.swift; sourceTree = "<group>"; };
 		1A000000000000000000000C /* VoiceAutotune.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAutotune.swift; sourceTree = "<group>"; };
+		1A000000000000000000000D /* SongIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongIdentifier.swift; sourceTree = "<group>"; };
+		1A000000000000000000000E /* LyricsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsProvider.swift; sourceTree = "<group>"; };
+		1A000000000000000000000F /* LyricsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsController.swift; sourceTree = "<group>"; };
+		1A0000000000000000000010 /* LyricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000011 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		1A0000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A0000000000000000000008 /* LiveKaraoke.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveKaraoke.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -64,6 +73,11 @@
 				1A000000000000000000000A /* PitchDetector.swift */,
 				1A000000000000000000000B /* MusicScale.swift */,
 				1A000000000000000000000C /* VoiceAutotune.swift */,
+				1A000000000000000000000D /* SongIdentifier.swift */,
+				1A000000000000000000000E /* LyricsProvider.swift */,
+				1A000000000000000000000F /* LyricsController.swift */,
+				1A0000000000000000000010 /* LyricsView.swift */,
+				1A0000000000000000000011 /* Signing.xcconfig */,
 				1A0000000000000000000007 /* Info.plist */,
 				1A0000000000000000000008 /* LiveKaraoke.entitlements */,
 			);
@@ -155,6 +169,10 @@
 				1B000000000000000000000A /* PitchDetector.swift in Sources */,
 				1B000000000000000000000B /* MusicScale.swift in Sources */,
 				1B000000000000000000000C /* VoiceAutotune.swift in Sources */,
+				1B000000000000000000000D /* SongIdentifier.swift in Sources */,
+				1B000000000000000000000E /* LyricsProvider.swift in Sources */,
+				1B000000000000000000000F /* LyricsController.swift in Sources */,
+				1B0000000000000000000010 /* LyricsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -210,6 +228,7 @@
 		};
 		210000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A0000000000000000000011 /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LiveKaraoke/LiveKaraoke.entitlements;
@@ -233,6 +252,7 @@
 		};
 		210000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A0000000000000000000011 /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LiveKaraoke/LiveKaraoke.entitlements;

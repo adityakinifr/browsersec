@@ -1,0 +1,27 @@
+//
+//  Signing.xcconfig
+//  LiveKaraoke
+//
+//  *** Why this file exists: stable permissions across rebuilds. ***
+//
+//  macOS records TCC permission grants (Microphone, audio capture) against the
+//  app's BUNDLE IDENTIFIER + its CODE-SIGNING IDENTITY (the "designated
+//  requirement"). If either changes between builds, macOS treats it as a brand
+//  new app and re-prompts — or silently denies. To make a grant stick:
+//
+//    1. Keep the bundle id constant (set below, do not change it).
+//    2. Sign every build with the SAME identity. Set your team ONCE here and
+//       Xcode will reuse the same Apple Development certificate each build,
+//       giving a stable designated requirement -> the grant persists.
+//
+//  Find your Team ID: Xcode ▸ Settings ▸ Accounts (select your Apple ID team),
+//  or https://developer.apple.com/account ▸ Membership. A free Apple ID works
+//  for local development.
+//
+//  Avoid "Sign to Run Locally" / ad-hoc signing: its identity changes every
+//  build, which is exactly what causes the repeated permission prompts.
+
+DEVELOPMENT_TEAM =
+PRODUCT_BUNDLE_IDENTIFIER = com.livekaraoke.LiveKaraoke
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = Apple Development
