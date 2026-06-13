@@ -38,6 +38,10 @@ final class AudioMonitor {
 
     private var deallocScratch: (() -> Void)?
 
+    // Recording (M5)
+    private var recordFile: AVAudioFile?
+    private var isTapping = false
+
     var removeVocals: Bool {
         get { removeVocalsFlag }
         set { removeVocalsFlag = newValue; remover.enabled = newValue }
@@ -84,7 +88,39 @@ final class AudioMonitor {
         try engine.start()
     }
 
+    // MARK: recording the final mix
+    /// Starts writing the mixer output to `url` (AAC .m4a). Returns false on error.
+    @discardableResult
+    func startRecording(to url: URL) -> Bool {
+        let mixer = engine.mainMixerNode
+        let format = mixer.outputFormat(forBus: 0)
+        let settings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatMPEG4AAC,
+            AVSampleRateKey: format.sampleRate,
+            AVNumberOfChannelsKey: format.channelCount,
+        ]
+        do {
+            recordFile = try AVAudioFile(forWriting: url, settings: settings)
+        } catch {
+            return false
+        }
+        mixer.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
+            try? self?.recordFile?.write(from: buffer)
+        }
+        isTapping = true
+        return true
+    }
+
+    func stopRecording() {
+        if isTapping {
+            engine.mainMixerNode.removeTap(onBus: 0)
+            isTapping = false
+        }
+        recordFile = nil
+    }
+
     func stop() {
+        stopRecording()
         stopNeuralWorker()
         engine.stop()
         if micEnabled { voice.detach() }

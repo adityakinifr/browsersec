@@ -8,6 +8,24 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var capture = SystemAudioCapture()
 
+    /// Maps the live autotune settings to a matching preset (or "Custom"),
+    /// and applies a preset when one is picked.
+    private var presetSelection: Binding<String?> {
+        Binding(
+            get: {
+                AutotunePreset.all.first {
+                    $0.autotuneEnabled == capture.autotuneEnabled
+                        && abs($0.retuneStrength - capture.retuneStrength) < 0.001
+                }?.name
+            },
+            set: { name in
+                if let name, let p = AutotunePreset.all.first(where: { $0.name == name }) {
+                    capture.apply(p)
+                }
+            }
+        )
+    }
+
     var body: some View {
         VStack(spacing: 24) {
             Text("LiveKaraoke · M0")
@@ -29,6 +47,16 @@ struct ContentView: View {
                 Toggle("Monitor to output", isOn: $capture.monitorEnabled)
                     .toggleStyle(.switch)
                     .disabled(capture.isRunning) // set before starting
+
+                Button {
+                    capture.toggleRecording()
+                } label: {
+                    Label(capture.isRecording ? "Stop Rec" : "Record",
+                          systemImage: capture.isRecording ? "stop.circle.fill" : "record.circle")
+                }
+                .tint(capture.isRecording ? .red : nil)
+                .disabled(!capture.isRunning)
+                .help("Records the final mix (instrumental + autotuned voice) to ~/Music as .m4a")
             }
 
             Toggle("Remove vocals (karaoke)", isOn: $capture.removeVocals)
@@ -66,11 +94,23 @@ struct ContentView: View {
                         ForEach(NoteName.allCases) { Text($0.label).tag($0) }
                     }
                     .frame(maxWidth: 120)
+                    .disabled(capture.autoDetectKey)
 
                     Picker("Scale", selection: $capture.scaleType) {
                         ForEach(ScaleType.allCases) { Text($0.rawValue).tag($0) }
                     }
+                    .disabled(capture.autoDetectKey)
                 }
+
+                Toggle("Auto-detect key from track", isOn: $capture.autoDetectKey)
+                    .toggleStyle(.switch)
+                    .disabled(capture.isRunning) // set before starting
+
+                Picker("Preset", selection: presetSelection) {
+                    Text("Custom").tag(Optional<String>.none)
+                    ForEach(AutotunePreset.all) { Text($0.name).tag(Optional($0.name)) }
+                }
+                .pickerStyle(.segmented)
 
                 HStack {
                     Text("Retune")
@@ -104,7 +144,7 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(28)
-        .frame(minWidth: 460, minHeight: 760)
+        .frame(minWidth: 460, minHeight: 860)
     }
 }
 

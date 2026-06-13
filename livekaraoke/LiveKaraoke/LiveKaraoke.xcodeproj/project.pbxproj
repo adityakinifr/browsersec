@@ -21,6 +21,8 @@
 		1B000000000000000000000F /* LyricsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000000F /* LyricsController.swift */; };
 		1B0000000000000000000010 /* LyricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000010 /* LyricsView.swift */; };
 		1B0000000000000000000011 /* NeuralSeparator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000012 /* NeuralSeparator.swift */; };
+		1B0000000000000000000012 /* KeyDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000013 /* KeyDetector.swift */; };
+		1B0000000000000000000013 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000014 /* Presets.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +42,8 @@
 		1A0000000000000000000010 /* LyricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsView.swift; sourceTree = "<group>"; };
 		1A0000000000000000000011 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		1A0000000000000000000012 /* NeuralSeparator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralSeparator.swift; sourceTree = "<group>"; };
+		1A0000000000000000000013 /* KeyDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyDetector.swift; sourceTree = "<group>"; };
+		1A0000000000000000000014 /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
 		1A0000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A0000000000000000000008 /* LiveKaraoke.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveKaraoke.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -80,6 +84,8 @@
 				1A000000000000000000000E /* LyricsProvider.swift */,
 				1A000000000000000000000F /* LyricsController.swift */,
 				1A0000000000000000000010 /* LyricsView.swift */,
+				1A0000000000000000000013 /* KeyDetector.swift */,
+				1A0000000000000000000014 /* Presets.swift */,
 				1A0000000000000000000011 /* Signing.xcconfig */,
 				1A0000000000000000000007 /* Info.plist */,
 				1A0000000000000000000008 /* LiveKaraoke.entitlements */,
@@ -177,6 +183,8 @@
 				1B000000000000000000000F /* LyricsController.swift in Sources */,
 				1B0000000000000000000010 /* LyricsView.swift in Sources */,
 				1B0000000000000000000011 /* NeuralSeparator.swift in Sources */,
+				1B0000000000000000000012 /* KeyDetector.swift in Sources */,
+				1B0000000000000000000013 /* Presets.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

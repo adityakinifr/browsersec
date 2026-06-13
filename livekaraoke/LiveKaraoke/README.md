@@ -91,6 +91,20 @@ thread). Band-split stays inline and RT-safe. The model isn't shipped (large,
 license-bound) — convert one with `tools/convert_separator_coreml.py`; until then
 the Neural segment shows "(add model)" and band-split is used.
 
-## Next (M5)
-Polish: key auto-detect from the backing track, end-to-end latency calibration,
-recording/export, and presets.
+## M5 (implemented): polish
+- **Auto-detect key** (`KeyDetector.swift`): chroma via Accelerate FFT correlated
+  with Krumhansl–Schmuckler profiles; drives the autotune key/scale live. Toggle
+  **Auto-detect key from track**.
+- **Recording/export**: the **Record** button taps the final mix and writes an
+  AAC `.m4a` to `~/Music`.
+- **Presets** (`Presets.swift`): Off / Gentle / Natural / Hard, plus the last-used
+  settings are persisted via `UserDefaults`.
+
+(Sandboxed builds will need a user-selected save location or the Music-folder
+entitlement; dev build writes to ~/Music directly.)
+
+## Status
+M0–M5 implemented. Remaining work is on-device validation and a real neural
+separation model (`tools/`). The DSP/CoreAudio paths are written against Apple's
+documented APIs but have not been compiled on CI — expect minor first-build
+fixes.

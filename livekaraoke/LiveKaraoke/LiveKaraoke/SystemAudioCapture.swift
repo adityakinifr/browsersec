@@ -31,7 +31,7 @@ final class SystemAudioCapture: ObservableObject {
     @Published private(set) var level: Float = 0      // 0...1 RMS, smoothed
     @Published var monitorEnabled = false
     @Published var removeVocals = true {
-        didSet { monitor?.removeVocals = removeVocals }
+        didSet { monitor?.removeVocals = removeVocals; SettingsStore.saveRemoveVocals(removeVocals) }
     }
     // M4: separation method (set before Start). Neural requires a bundled model.
     @Published var separationMethod: SeparationMethod = .bandSplit
@@ -40,17 +40,19 @@ final class SystemAudioCapture: ObservableObject {
     // M2: microphone autotune
     @Published var micEnabled = false
     @Published var autotuneEnabled = true {
-        didSet { monitor?.setAutotuneEnabled(autotuneEnabled) }
+        didSet { monitor?.setAutotuneEnabled(autotuneEnabled); SettingsStore.saveAutotune(autotuneEnabled) }
     }
     @Published var retuneStrength: Float = 1.0 {
-        didSet { monitor?.setRetuneStrength(retuneStrength) }
+        didSet { monitor?.setRetuneStrength(retuneStrength); SettingsStore.saveRetune(retuneStrength) }
     }
     @Published var scaleRoot: NoteName = .c {
-        didSet { monitor?.updateScale(currentScale) }
+        didSet { monitor?.updateScale(currentScale); SettingsStore.saveScaleRoot(scaleRoot.rawValue) }
     }
     @Published var scaleType: ScaleType = .chromatic {
-        didSet { monitor?.updateScale(currentScale) }
+        didSet { monitor?.updateScale(currentScale); SettingsStore.saveScaleType(scaleType.rawValue) }
     }
+    // M5: auto-detect the key from the backing track (set before Start).
+    @Published var autoDetectKey = false
 
     private var currentScale: MusicScale {
         MusicScale(root: scaleRoot, type: scaleType)
@@ -60,10 +62,58 @@ final class SystemAudioCapture: ObservableObject {
     @Published var lyricsEnabled = false
     let lyrics = LyricsController()
 
+    // M5: recording
+    @Published private(set) var isRecording = false
+    @Published private(set) var lastRecordingURL: URL?
+
     @Published private(set) var status = "Idle"
 
     private var songIdentifier: SongIdentifier?
     private var lyricsActive = false   // plain Bool, read on the audio thread
+    private var keyDetector: KeyDetector?
+    private var keyActive = false      // plain Bool, read on the audio thread
+
+    init() { loadPersistedSettings() }
+
+    private func loadPersistedSettings() {
+        if let v = SettingsStore.retune { retuneStrength = v }
+        if let v = SettingsStore.autotune { autotuneEnabled = v }
+        if let v = SettingsStore.removeVocals { removeVocals = v }
+        if let v = SettingsStore.scaleRoot, let n = NoteName(rawValue: v) { scaleRoot = n }
+        if let v = SettingsStore.scaleType, let s = ScaleType(rawValue: v) { scaleType = s }
+    }
+
+    // MARK: - Presets / recording
+
+    func apply(_ preset: AutotunePreset) {
+        autotuneEnabled = preset.autotuneEnabled
+        retuneStrength = preset.retuneStrength
+    }
+
+    func toggleRecording() {
+        guard isRunning, let monitor else { return }
+        if isRecording {
+            monitor.stopRecording()
+            isRecording = false
+            status = "Saved recording: \(lastRecordingURL?.lastPathComponent ?? "")"
+        } else {
+            let url = makeRecordingURL()
+            if monitor.startRecording(to: url) {
+                lastRecordingURL = url
+                isRecording = true
+                status = "Recording…"
+            } else {
+                status = "Couldn't start recording"
+            }
+        }
+    }
+
+    private func makeRecordingURL() -> URL {
+        let dir = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let stamp = ISO8601DateFormatter().string(from: .now).replacingOccurrences(of: ":", with: "-")
+        return dir.appendingPathComponent("LiveKaraoke-\(stamp).m4a")
+    }
 
     private var tapID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
@@ -114,6 +164,7 @@ final class SystemAudioCapture: ObservableObject {
                 monitor = m
             }
             if lyricsEnabled { setUpSongIdentifier() }
+            if autoDetectKey { setUpKeyDetector() }
             startLevelTimer()
             isRunning = true
             status = statusLine()
@@ -143,6 +194,20 @@ final class SystemAudioCapture: ObservableObject {
         id.start()
         songIdentifier = id
         lyricsActive = true
+    }
+
+    private func setUpKeyDetector() {
+        let det = KeyDetector(sampleRate: sampleRate)
+        det.onKey = { [weak self] root, isMajor in
+            guard let self else { return }
+            // Detection drives major/minor; leave chromatic for manual mode.
+            if self.scaleRoot != root { self.scaleRoot = root }
+            let detected: ScaleType = isMajor ? .major : .minor
+            if self.scaleType != detected { self.scaleType = detected }
+        }
+        det.start()
+        keyDetector = det
+        keyActive = true
     }
 
     private func requestMicAccess(_ completion: @escaping (Bool) -> Void) {
@@ -291,8 +356,8 @@ final class SystemAudioCapture: ObservableObject {
         var sumSquares: Float = 0
         let scratch = UnsafeMutableBufferPointer<Float>.allocate(capacity: frames * 2)
         defer { scratch.deallocate() }
-        let feedLyrics = lyricsActive
-        let mono = feedLyrics
+        let feedMono = lyricsActive || keyActive
+        let mono = feedMono
             ? UnsafeMutableBufferPointer<Float>.allocate(capacity: frames) : nil
         defer { mono?.deallocate() }
 
@@ -312,7 +377,9 @@ final class SystemAudioCapture: ObservableObject {
             self.ring.write(UnsafeBufferPointer(scratch))
         }
         if let mono {
-            songIdentifier?.appendMono(UnsafeBufferPointer(mono))
+            let buf = UnsafeBufferPointer(mono)
+            if lyricsActive { songIdentifier?.appendMono(buf) }
+            if keyActive { keyDetector?.appendMono(buf) }
         }
     }
 
@@ -344,6 +411,9 @@ final class SystemAudioCapture: ObservableObject {
         lyricsActive = false
         songIdentifier?.stop(); songIdentifier = nil
         lyrics.reset()
+        keyActive = false
+        keyDetector?.stop(); keyDetector = nil
+        isRecording = false
 
         if aggregateID != kAudioObjectUnknown {
             AudioDeviceStop(aggregateID, ioProcID)
