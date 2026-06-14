@@ -24,5 +24,9 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>LiveKaraoke captures system audio (and, later, your microphone) to provide real-time karaoke vocal removal and autotune.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>LiveKaraoke records this computer's audio output to remove vocals and play the instrumental for real-time karaoke.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>LiveKaraoke reads the currently playing track from Spotify to show its title and album artwork.</string>
 </dict>
 </plist>

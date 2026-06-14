@@ -21,6 +21,7 @@ final class LyricsController: ObservableObject {
     private var matchDate: Date = .now
     private var clock: Timer?
     private var fetchTask: Task<Void, Never>?
+    private var fetchKey: String?     // song we've already started/finished fetching
 
     /// Current estimated position in the song.
     private var songTime: TimeInterval {
@@ -29,13 +30,16 @@ final class LyricsController: ObservableObject {
 
     func handleMatch(title: String, artist: String, matchOffset: TimeInterval) {
         let label = artist.isEmpty ? title : "\(title) — \(artist)"
-        // Same song already loaded: just re-seed the clock, keep lyrics.
-        let isSame = (nowPlaying == label && !lines.isEmpty)
         nowPlaying = label
+        // Always re-seed the clock so scrolling tracks Spotify's position.
         self.matchOffset = matchOffset
         self.matchDate = .now
 
-        if isSame { return }
+        // Fetch only when the SONG changes. lrclib can take several seconds; the
+        // 2s position updates must not cancel an in-flight fetch (that was the bug
+        // that left it stuck on "No synced lyrics found").
+        if fetchKey == label { return }
+        fetchKey = label
 
         status = "Fetching lyrics…"
         lines = []
@@ -43,7 +47,7 @@ final class LyricsController: ObservableObject {
         fetchTask?.cancel()
         fetchTask = Task { [weak self] in
             let result = await LyricsProvider.fetch(artist: artist, title: title)
-            guard let self else { return }
+            guard let self, self.fetchKey == label else { return }   // ignore stale
             if let result, !result.isEmpty {
                 self.lines = result
                 self.status = "Synced lyrics loaded"
@@ -61,6 +65,7 @@ final class LyricsController: ObservableObject {
     func reset() {
         clock?.invalidate(); clock = nil
         fetchTask?.cancel(); fetchTask = nil
+        fetchKey = nil
         nowPlaying = ""
         status = "Lyrics off"
         lines = []

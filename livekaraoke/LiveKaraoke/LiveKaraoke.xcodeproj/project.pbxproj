@@ -32,6 +32,8 @@
 		1A0000000000000000000004 /* SystemAudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioCapture.swift; sourceTree = "<group>"; };
 		1A0000000000000000000005 /* AudioMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMonitor.swift; sourceTree = "<group>"; };
 		1A0000000000000000000006 /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
+		1A0000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A0000000000000000000008 /* LiveKaraoke.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveKaraoke.entitlements; sourceTree = "<group>"; };
 		1A0000000000000000000009 /* VocalRemover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocalRemover.swift; sourceTree = "<group>"; };
 		1A000000000000000000000A /* PitchDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchDetector.swift; sourceTree = "<group>"; };
 		1A000000000000000000000B /* MusicScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicScale.swift; sourceTree = "<group>"; };
@@ -44,8 +46,6 @@
 		1A0000000000000000000012 /* NeuralSeparator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralSeparator.swift; sourceTree = "<group>"; };
 		1A0000000000000000000013 /* KeyDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyDetector.swift; sourceTree = "<group>"; };
 		1A0000000000000000000014 /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
-		1A0000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1A0000000000000000000008 /* LiveKaraoke.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveKaraoke.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -246,6 +246,7 @@
 				CODE_SIGN_ENTITLEMENTS = LiveKaraoke/LiveKaraoke.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYC565AV7N;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiveKaraoke/Info.plist;
@@ -270,6 +271,7 @@
 				CODE_SIGN_ENTITLEMENTS = LiveKaraoke/LiveKaraoke.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LYC565AV7N;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiveKaraoke/Info.plist;

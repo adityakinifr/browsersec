@@ -29,12 +29,16 @@ final class SystemAudioCapture: ObservableObject {
 
     @Published private(set) var isRunning = false
     @Published private(set) var level: Float = 0      // 0...1 RMS, smoothed
-    @Published var monitorEnabled = false
+    @Published var monitorEnabled = true   // play the processed karaoke mix to output
     @Published var removeVocals = true {
         didSet { monitor?.removeVocals = removeVocals; SettingsStore.saveRemoveVocals(removeVocals) }
     }
+    // M1: how aggressively to subtract the centered vocal band (live).
+    @Published var removalStrength: Float = 1.0 {
+        didSet { monitor?.setRemovalStrength(removalStrength) }
+    }
     // M4: separation method (set before Start). Neural requires a bundled model.
-    @Published var separationMethod: SeparationMethod = .bandSplit
+    @Published var separationMethod: SeparationMethod = .spectral
     let neuralModelAvailable: Bool = NeuralSeparator().isAvailable
 
     // M2: microphone autotune
@@ -52,7 +56,7 @@ final class SystemAudioCapture: ObservableObject {
         didSet { monitor?.updateScale(currentScale); SettingsStore.saveScaleType(scaleType.rawValue) }
     }
     // M5: auto-detect the key from the backing track (set before Start).
-    @Published var autoDetectKey = false
+    @Published var autoDetectKey = true
 
     private var currentScale: MusicScale {
         MusicScale(root: scaleRoot, type: scaleType)
@@ -68,10 +72,20 @@ final class SystemAudioCapture: ObservableObject {
 
     @Published private(set) var status = "Idle"
 
-    private var songIdentifier: SongIdentifier?
-    private var lyricsActive = false   // plain Bool, read on the audio thread
-    private var keyDetector: KeyDetector?
-    private var keyActive = false      // plain Bool, read on the audio thread
+    // UI spectrum meter: log-spaced bands, 0…1, updated ~45×/s.
+    static let spectrumBandCount = 48
+    @Published private(set) var spectrum: [Float] =
+        Array(repeating: 0, count: SystemAudioCapture.spectrumBandCount)
+
+    // Touched from the nonisolated audio thread (see `handle`). Marked
+    // nonisolated(unsafe) to opt out of main-actor isolation; access is a single
+    // aligned word read/write per the original lock-free design.
+    nonisolated(unsafe) private var songIdentifier: SongIdentifier?
+    nonisolated(unsafe) private var lyricsActive = false   // plain Bool, read on the audio thread
+    nonisolated(unsafe) private var keyDetector: KeyDetector?
+    nonisolated(unsafe) private var keyActive = false      // plain Bool, read on the audio thread
+    nonisolated(unsafe) private var spectrumAnalyzer: SpectrumAnalyzer?
+    nonisolated(unsafe) private var spectrumActive = false // always on while capturing
 
     init() { loadPersistedSettings() }
 
@@ -119,28 +133,36 @@ final class SystemAudioCapture: ObservableObject {
     private var aggregateID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
     private var ioProcID: AudioDeviceIOProcID?
 
-    private var ring = FloatRingBuffer(capacity: 1 << 16)
+    nonisolated(unsafe) private var ring = FloatRingBuffer(capacity: 1 << 16)
     private var monitor: AudioMonitor?
     private var sampleRate: Double = 48_000
 
+    // Mirror of `monitorEnabled` for the audio thread (the @Published property is
+    // main-actor isolated). Set at capture start; the toggle is fixed before Start.
+    nonisolated(unsafe) private var monitorActive = false
+
     // Written on the audio thread, read on a UI timer. Plain Float: aligned
     // word access is atomic on arm64, good enough for a meter.
-    private var rawLevel: Float = 0
+    nonisolated(unsafe) private var rawLevel: Float = 0
     private var levelTimer: Timer?
 
     // MARK: - Public control
 
     func start() {
         guard !isRunning else { return }
-        // Mic needs TCC permission; request before building the input graph.
-        if micEnabled {
-            requestMicAccess { [weak self] granted in
-                guard let self else { return }
-                if granted { self.beginCapture() }
-                else { self.status = "Microphone access denied" }
+        // BOTH the system-audio process tap and the (optional) microphone are
+        // gated behind the audio-recording (Microphone) privacy permission. The
+        // tap can be *created* without it but then delivers SILENT buffers, so we
+        // must request authorization on every start — not only when the mic is on.
+        status = "Requesting audio permission…"
+        requestMicAccess { [weak self] granted in
+            guard let self else { return }
+            if granted {
+                self.beginCapture()
+            } else {
+                self.status = "Audio recording denied — enable LiveKaraoke under "
+                    + "System Settings ▸ Privacy & Security ▸ Microphone, then Start again."
             }
-        } else {
-            beginCapture()
         }
     }
 
@@ -149,11 +171,13 @@ final class SystemAudioCapture: ObservableObject {
             try setUpTap()
             try setUpAggregateDevice()
             try setUpIOProc()
+            monitorActive = monitorEnabled
             try AudioDeviceStartChecked()
             if monitorEnabled || micEnabled {
                 let m = AudioMonitor(ring: ring,
                                      sampleRate: sampleRate,
                                      removeVocals: removeVocals,
+                                     removalStrength: removalStrength,
                                      method: separationMethod,
                                      instrumentalEnabled: monitorEnabled,
                                      micEnabled: micEnabled,
@@ -163,8 +187,10 @@ final class SystemAudioCapture: ObservableObject {
                 try m.start()
                 monitor = m
             }
-            if lyricsEnabled { setUpSongIdentifier() }
+            // Lyrics are now driven by Spotify's now-playing metadata (see
+            // NowPlaying → LyricsController), not ShazamKit fingerprinting.
             if autoDetectKey { setUpKeyDetector() }
+            setUpSpectrumAnalyzer()
             startLevelTimer()
             isRunning = true
             status = statusLine()
@@ -194,6 +220,15 @@ final class SystemAudioCapture: ObservableObject {
         id.start()
         songIdentifier = id
         lyricsActive = true
+    }
+
+    private func setUpSpectrumAnalyzer() {
+        let an = SpectrumAnalyzer(sampleRate: sampleRate,
+                                  bandCount: Self.spectrumBandCount)
+        an.onBands = { [weak self] bands in self?.spectrum = bands }
+        an.start()
+        spectrumAnalyzer = an
+        spectrumActive = true
     }
 
     private func setUpKeyDetector() {
@@ -234,11 +269,20 @@ final class SystemAudioCapture: ObservableObject {
     // MARK: - Tap
 
     private func setUpTap() throws {
-        // Tap every process' output, mixed to stereo, excluding none.
-        let desc = CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+        // Exclude our own process from the global tap. Two reasons:
+        //  1) our monitor plays the processed instrumental back out — without
+        //     excluding ourselves it'd be re-captured into a feedback loop;
+        //  2) when monitoring we mute the tapped audio (below); a global tap
+        //     would otherwise mute our OWN playback too → total silence.
+        let exclude = currentProcessAudioObjectID().map { [$0] } ?? []
+        let desc = CATapDescription(stereoGlobalTapButExcludeProcesses: exclude)
         desc.name = "LiveKaraoke System Tap"
         desc.isPrivate = true
-        desc.muteBehavior = .unmuted   // don't mute the original playback
+        // When monitoring, mute the original so you only hear our processed
+        // (vocal-removed) instrumental — otherwise the untouched mix, vocals and
+        // all, plays on top and the removal is inaudible. When not monitoring,
+        // leave playback untouched (the app just meters the level).
+        desc.muteBehavior = monitorEnabled ? .muted : .unmuted
 
         var newTap = AudioObjectID(kAudioObjectUnknown)
         let err = AudioHardwareCreateProcessTap(desc, &newTap)
@@ -256,6 +300,24 @@ final class SystemAudioCapture: ObservableObject {
         if fmtErr == noErr, asbd.mSampleRate > 0 {
             sampleRate = asbd.mSampleRate
         }
+    }
+
+    /// Resolve this app's own Core Audio process object so it can be excluded
+    /// from the global tap. Returns nil if the lookup fails (we then tap all).
+    private func currentProcessAudioObjectID() -> AudioObjectID? {
+        var pid = getpid()
+        var objID = AudioObjectID(kAudioObjectUnknown)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyTranslatePIDToProcessObject,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        let err = withUnsafeMutablePointer(to: &pid) { pidPtr in
+            AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr,
+                                       UInt32(MemoryLayout<pid_t>.size), pidPtr, &size, &objID)
+        }
+        guard err == noErr, objID != AudioObjectID(kAudioObjectUnknown) else { return nil }
+        return objID
     }
 
     private func tapUID() throws -> String {
@@ -356,7 +418,7 @@ final class SystemAudioCapture: ObservableObject {
         var sumSquares: Float = 0
         let scratch = UnsafeMutableBufferPointer<Float>.allocate(capacity: frames * 2)
         defer { scratch.deallocate() }
-        let feedMono = lyricsActive || keyActive
+        let feedMono = lyricsActive || keyActive || spectrumActive
         let mono = feedMono
             ? UnsafeMutableBufferPointer<Float>.allocate(capacity: frames) : nil
         defer { mono?.deallocate() }
@@ -373,13 +435,14 @@ final class SystemAudioCapture: ObservableObject {
         let rms = (sumSquares / Float(frames)).squareRoot()
         self.rawLevel = rms   // single aligned Float write; fine for a meter
 
-        if self.monitorEnabled {
+        if self.monitorActive {
             self.ring.write(UnsafeBufferPointer(scratch))
         }
         if let mono {
             let buf = UnsafeBufferPointer(mono)
             if lyricsActive { songIdentifier?.appendMono(buf) }
             if keyActive { keyDetector?.appendMono(buf) }
+            if spectrumActive { spectrumAnalyzer?.appendMono(buf) }
         }
     }
 
@@ -407,12 +470,16 @@ final class SystemAudioCapture: ObservableObject {
 
     private func tearDown() {
         levelTimer?.invalidate(); levelTimer = nil
+        monitorActive = false
         monitor?.stop(); monitor = nil
         lyricsActive = false
         songIdentifier?.stop(); songIdentifier = nil
         lyrics.reset()
         keyActive = false
         keyDetector?.stop(); keyDetector = nil
+        spectrumActive = false
+        spectrumAnalyzer?.stop(); spectrumAnalyzer = nil
+        spectrum = Array(repeating: 0, count: Self.spectrumBandCount)
         isRecording = false
 
         if aggregateID != kAudioObjectUnknown {

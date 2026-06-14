@@ -12,5 +12,9 @@
 	<false/>
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
+	<!-- Hardened runtime requires this to send Apple Events (read Spotify's
+	     now-playing track). It's a standard exception — no provisioning needed. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
 </dict>
 </plist>

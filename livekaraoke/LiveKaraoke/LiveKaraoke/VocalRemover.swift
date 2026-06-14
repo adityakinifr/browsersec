@@ -63,38 +63,45 @@ struct Biquad {
 }
 
 final class VocalRemover {
-    /// When false, `process` returns a plain mono downmix (A/B reference).
+    /// When false, `process` returns the untouched stereo frame (A/B reference).
     var enabled = true
 
-    private let fLo: Float = 120     // keep centered content below this
-    private let fHi: Float = 9_000   // keep centered content above this
+    // Wider than a "safe" vocal band so we also catch low male fundamentals and
+    // sibilance, which are the usual leak paths. The tradeoff (more centered
+    // instruments removed → more hollow) is exposed live via `strength`.
+    private let fLo: Float = 90       // vocal band lower edge
+    private let fHi: Float = 14_000   // vocal band upper edge
 
-    private var midLP: Biquad
-    private var midHP: Biquad
-    private var sideHP: Biquad
-    private var sideLP: Biquad
+    // Makeup gain to offset the energy removed with the centered vocal band.
+    var makeupGain: Float = 1.7       // ≈ +4.6 dB
+
+    /// Live "Removal strength" (0…~1.5). How much of the centered vocal band is
+    /// subtracted: 1.0 fully cancels a dead-center vocal; >1 over-subtracts to
+    /// chase stubborn vocals (at the cost of more hollowness). Audio-thread read.
+    var strength: Float = 1.0
+
+    // A band-pass on the MID signal isolates the centered, vocal-range content
+    // (lead vocals sit dead-center). We subtract it from each channel, so
+    // full-range stereo, bass, and air are all preserved.
+    private var midHP: Biquad        // high-pass at fLo
+    private var midLP: Biquad        // low-pass at fHi
 
     init(sampleRate: Double) {
         let fs = Float(sampleRate)
-        midLP = .lowpass(fLo, fs)
-        midHP = .highpass(fHi, fs)
-        sideHP = .highpass(fLo, fs)
-        sideLP = .lowpass(fHi, fs)
+        midHP = .highpass(fLo, fs)
+        midLP = .lowpass(fHi, fs)
     }
 
-    func reset() {
-        midLP.reset(); midHP.reset(); sideHP.reset(); sideLP.reset()
-    }
+    func reset() { midHP.reset(); midLP.reset() }
 
-    /// One stereo frame -> one mono instrumental sample.
+    /// One stereo frame -> one stereo instrumental frame. Keeps the full mix's
+    /// width and frequency range; only the centered vocal band is removed.
     @inline(__always)
-    func process(left l: Float, right r: Float) -> Float {
+    func process(left l: Float, right r: Float) -> (Float, Float) {
+        if !enabled { return (l, r) }
         let mid = (l + r) * 0.5
-        if !enabled { return mid }
-        let side = (l - r) * 0.5
-        let lows = midLP.process(mid)
-        let highs = midHP.process(mid)
-        let sideBand = sideLP.process(sideHP.process(side))
-        return lows + highs + sideBand
+        let centerVocal = midLP.process(midHP.process(mid)) * strength
+        return ((l - centerVocal) * makeupGain,
+                (r - centerVocal) * makeupGain)
     }
 }

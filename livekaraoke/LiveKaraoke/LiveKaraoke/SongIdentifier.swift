@@ -68,12 +68,17 @@ final class SongIdentifier: NSObject, SHSessionDelegate {
     }
 
     private func drain() {
-        guard ring.availableToRead >= Int(chunkFrames) else { return }
         guard let ch = pcmBuffer.floatChannelData else { return }
-        let out = UnsafeMutableBufferPointer(start: ch[0], count: Int(chunkFrames))
-        ring.read(into: out)
-        pcmBuffer.frameLength = chunkFrames
-        session.matchStreamingBuffer(pcmBuffer, at: nil)
+        // Drain ALL buffered audio each tick. Capture produces ~48 kHz of mono;
+        // draining a single chunk per tick can't keep up, so the ring would
+        // overflow and ShazamKit would receive a time-discontinuous stream that
+        // never matches. Loop so the audio handed to Shazam stays contiguous.
+        while ring.availableToRead >= Int(chunkFrames) {
+            let out = UnsafeMutableBufferPointer(start: ch[0], count: Int(chunkFrames))
+            ring.read(into: out)
+            pcmBuffer.frameLength = chunkFrames
+            session.matchStreamingBuffer(pcmBuffer, at: nil)
+        }
     }
 
     // MARK: SHSessionDelegate

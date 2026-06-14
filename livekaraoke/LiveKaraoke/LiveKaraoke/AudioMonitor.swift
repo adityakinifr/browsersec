@@ -23,9 +23,11 @@ final class AudioMonitor {
 
     // Vocal removal
     private let remover: VocalRemover
+    private let spectral: SpectralSeparator
     private let method: SeparationMethod
     private let neural = NeuralSeparator()
     private var useNeural = false
+    private var useSpectral = false
     private var removeVocalsFlag: Bool
     private var neuralOutRing: FloatRingBuffer?
     private var neuralTimer: DispatchSourceTimer?
@@ -35,6 +37,9 @@ final class AudioMonitor {
     private let voice = VoiceAutotune()
     private let instrumentalEnabled: Bool
     private let micEnabled: Bool
+    // Mic engine start/stop runs here, off the main thread — AVAudioEngine.start()
+    // can block on the Core Audio HAL, which would otherwise freeze the UI.
+    private let voiceQueue = DispatchQueue(label: "com.livekaraoke.voice", qos: .userInitiated)
 
     private var deallocScratch: (() -> Void)?
 
@@ -44,12 +49,13 @@ final class AudioMonitor {
 
     var removeVocals: Bool {
         get { removeVocalsFlag }
-        set { removeVocalsFlag = newValue; remover.enabled = newValue }
+        set { removeVocalsFlag = newValue; remover.enabled = newValue; spectral.enabled = newValue }
     }
 
     init(ring: FloatRingBuffer,
          sampleRate: Double,
          removeVocals: Bool,
+         removalStrength: Float,
          method: SeparationMethod,
          instrumentalEnabled: Bool,
          micEnabled: Bool,
@@ -60,6 +66,10 @@ final class AudioMonitor {
         self.sampleRate = sampleRate
         self.remover = VocalRemover(sampleRate: sampleRate)
         self.remover.enabled = removeVocals
+        self.remover.strength = removalStrength
+        self.spectral = SpectralSeparator(sampleRate: sampleRate)
+        self.spectral.enabled = removeVocals
+        self.spectral.strength = removalStrength
         self.removeVocalsFlag = removeVocals
         self.method = method
         self.instrumentalEnabled = instrumentalEnabled
@@ -73,6 +83,7 @@ final class AudioMonitor {
     var neuralActive: Bool { method == .neural && neural.isAvailable }
 
     // MARK: live updates from the UI
+    func setRemovalStrength(_ s: Float) { remover.strength = s; spectral.strength = s }
     func updateScale(_ scale: MusicScale) { voice.scale = scale }
     func setAutotuneEnabled(_ on: Bool) { voice.enabled = on }
     func setRetuneStrength(_ s: Float) { voice.strength = s }
@@ -80,12 +91,29 @@ final class AudioMonitor {
     func start() throws {
         if instrumentalEnabled {
             useNeural = neuralActive
+            useSpectral = (method == .spectral) && !useNeural
             try attachInstrumental()
             if useNeural { startNeuralWorker() }
         }
-        if micEnabled { try voice.attach(to: engine) }
-        engine.prepare()
-        try engine.start()
+        // Attach the mic graph (source -> timePitch -> mixer) to the OUTPUT engine
+        // before starting it. No inputNode is involved here, so this can't trigger
+        // the input-chain crash. Returns false (and attaches nothing) if no mic.
+        var micAttached = false
+        if micEnabled { micAttached = voice.attach(to: engine) }
+
+        if instrumentalEnabled || micAttached {
+            engine.prepare()
+            try engine.start()
+        }
+
+        if micAttached {
+            // Mic *capture* is a tap-only engine. Start it off the main thread:
+            // AVAudioEngine.start() can block on the HAL. Non-fatal on failure —
+            // the mic source node simply reads silence and the music plays on.
+            voiceQueue.async { [weak self] in
+                try? self?.voice.startCapture()
+            }
+        }
     }
 
     // MARK: recording the final mix
@@ -123,7 +151,10 @@ final class AudioMonitor {
         stopRecording()
         stopNeuralWorker()
         engine.stop()
-        if micEnabled { voice.detach() }
+        if micEnabled {
+            voiceQueue.async { [voice] in voice.stopCapture() }
+            voice.detach(from: engine)
+        }
         if let node = sourceNode { engine.detach(node) }
         sourceNode = nil
         deallocScratch?()
@@ -132,15 +163,19 @@ final class AudioMonitor {
 
     // MARK: instrumental source
     private func attachInstrumental() throws {
+        // Stereo output: the remover keeps both channels, preserving the mix's
+        // width and full frequency range (a mono downmix sounded muted/distant).
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate,
-                                         channels: 1) else {
+                                         channels: 2) else {
             throw NSError(domain: "LiveKaraoke", code: -1,
                           userInfo: [NSLocalizedDescriptionKey: "Bad monitor format"])
         }
 
         let ring = self.ring
         let remover = self.remover
+        let spectral = self.spectral
         let useNeural = self.useNeural
+        let useSpectral = self.useSpectral
         let maxFrames = 4096
         let stereoScratch = UnsafeMutableBufferPointer<Float>.allocate(capacity: maxFrames * 2)
         stereoScratch.initialize(repeating: 0)
@@ -153,27 +188,38 @@ final class AudioMonitor {
 
         let node = AVAudioSourceNode(format: format) { [weak self] _, _, frameCount, audioBufferList in
             let abl = UnsafeMutableAudioBufferListPointer(audioBufferList)
-            guard let buf = abl.first,
-                  let out = buf.mData?.assumingMemoryBound(to: Float.self) else {
+            // Non-interleaved stereo: one buffer per channel.
+            guard abl.count >= 2,
+                  let outL = abl[0].mData?.assumingMemoryBound(to: Float.self),
+                  let outR = abl[1].mData?.assumingMemoryBound(to: Float.self) else {
                 return noErr
             }
             let n = Int(frameCount)
             let want = min(n, maxFrames)
 
             if useNeural, let neuralOut {
-                // Neural path: the worker already produced mono instrumental.
-                neuralOut.read(into: UnsafeMutableBufferPointer(start: out, count: want))
-            } else {
-                // Band-split path: read stereo and process inline.
+                // Neural path: the worker produced a mono instrumental; fan it
+                // out to both channels (the model is a separate, mono pipeline).
+                let mono = UnsafeMutableBufferPointer(start: stereoScratch.baseAddress, count: want)
+                neuralOut.read(into: mono)
+                for f in 0..<want { outL[f] = mono[f]; outR[f] = mono[f] }
+            } else if useSpectral {
+                // Spectral path: STFT soft-mask, stereo in -> stereo out inline.
                 let slice = UnsafeMutableBufferPointer(start: stereoScratch.baseAddress, count: want * 2)
                 ring.read(into: slice)
-                let removing = self?.removeVocalsFlag ?? true
+                spectral.process(stereoInterleaved: stereoScratch.baseAddress!, frames: want,
+                                 outL: outL, outR: outR)
+            } else {
+                // Band-split path: read interleaved stereo and process inline.
+                let slice = UnsafeMutableBufferPointer(start: stereoScratch.baseAddress, count: want * 2)
+                ring.read(into: slice)
                 for f in 0..<want {
-                    let l = stereoScratch[f * 2], r = stereoScratch[f * 2 + 1]
-                    out[f] = removing ? remover.process(left: l, right: r) : (l + r) * 0.5
+                    let (l, r) = remover.process(left: stereoScratch[f * 2],
+                                                 right: stereoScratch[f * 2 + 1])
+                    outL[f] = l; outR[f] = r
                 }
             }
-            if want < n { for f in want..<n { out[f] = 0 } }
+            if want < n { for f in want..<n { outL[f] = 0; outR[f] = 0 } }
             return noErr
         }
         self.sourceNode = node

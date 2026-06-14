@@ -21,7 +21,7 @@
 //  Avoid "Sign to Run Locally" / ad-hoc signing: its identity changes every
 //  build, which is exactly what causes the repeated permission prompts.
 
-DEVELOPMENT_TEAM =
+DEVELOPMENT_TEAM = LYC565AV7N
 PRODUCT_BUNDLE_IDENTIFIER = com.livekaraoke.LiveKaraoke
 CODE_SIGN_STYLE = Automatic
 CODE_SIGN_IDENTITY = Apple Development
